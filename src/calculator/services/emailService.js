@@ -11,9 +11,7 @@ const generateEmailHTML = (data) => {
     (a) => `
     <tr>
       <td>${a.title || a.id}</td>
-      <td>${a.code || '—'}</td>
       <td>${formatPrice(a.price || 0)}</td>
-      <td>${a.eta || '—'}</td>
     </tr>`
   ).join('');
   const total = (data.analyses || []).reduce((s, a) => s + (Number(a.price) || 0), 0);
@@ -41,7 +39,7 @@ const generateEmailHTML = (data) => {
       <div class="field"><span class="label">Email:</span> ${data.email || '—'}</div>
       <h2 style="font-size:16px;margin-top:20px;">Выбранные анализы</h2>
       <table>
-        <thead><tr><th>Название</th><th>Код</th><th>Цена</th><th>Срок</th></tr></thead>
+        <thead><tr><th>Название</th><th>Цена</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
       <p><strong>Итого: ${formatPrice(total)}</strong></p>
@@ -56,7 +54,7 @@ const generateEmailHTML = (data) => {
 };
 
 const generatePlainText = (data) => {
-  const lines = (data.analyses || []).map((a) => `  ${a.title || a.id} | ${a.code || '—'} | ${formatPrice(a.price || 0)} | ${a.eta || '—'}`);
+  const lines = (data.analyses || []).map((a) => `  ${a.title || a.id} | ${formatPrice(a.price || 0)}`);
   const total = (data.analyses || []).reduce((s, a) => s + (Number(a.price) || 0), 0);
   return `
 Заявка с калькулятора анализов — МЦ «Диагноз»
