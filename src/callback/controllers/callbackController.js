@@ -36,7 +36,7 @@ export const submitCallback = async (req, res) => {
       phone: normalizedPhone,
       consent: Boolean(consent),
       submitted_at: new Date().toLocaleString('ru-RU', {
-        timeZone: 'Europe/Tbilisi',
+        timeZone: 'Asia/Tbilisi',
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
