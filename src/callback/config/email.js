@@ -19,10 +19,10 @@ export const getEmailConfig = () => {
 
 export const getAdminEmail = () => {
   const email = process.env.ADMIN_EMAIL;
-  if (!email) {
-    throw new Error('ADMIN_EMAIL is not configured in .env file!');
+  if (!email || !email.trim()) {
+    throw new Error('ADMIN_EMAIL is not configured. Set it in Vercel → Settings → Environment Variables.');
   }
-  return email;
+  return email.trim();
 };
 
 export const getEmailSender = () => ({

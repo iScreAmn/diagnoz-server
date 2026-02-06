@@ -58,7 +58,8 @@ export const submitCallback = async (req, res) => {
       data: { timestamp: emailData.submitted_at }
     });
   } catch (error) {
-    console.error('Callback submission error:', error);
+    console.error('Callback submission error:', error?.message || error);
+    if (error?.stack) console.error(error.stack);
     return res.status(500).json({
       success: false,
       message: 'Ошибка при отправке заявки. Пожалуйста, попробуйте позже.',

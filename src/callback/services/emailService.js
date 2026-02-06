@@ -59,6 +59,11 @@ ${data.ip ? `IP: ${data.ip}\n` : ''}${data.userAgent ? `User Agent: ${data.userA
 `.trim();
 
 export const sendCallbackAdminEmail = async (data) => {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    const err = new Error('SMTP not configured. Set SMTP_USER and SMTP_PASS in Vercel Environment Variables.');
+    console.error(err.message);
+    throw err;
+  }
   const transporter = createTransporter();
   const sender = getEmailSender();
   const mailOptions = {
@@ -74,7 +79,7 @@ export const sendCallbackAdminEmail = async (data) => {
     console.log('Callback admin email sent:', info.messageId);
     return info;
   } catch (error) {
-    console.error('Callback admin email failed:', error.message);
+    console.error('Callback admin email failed:', error.message, error?.responseCode || '', error?.response || '');
     throw error;
   }
 };
