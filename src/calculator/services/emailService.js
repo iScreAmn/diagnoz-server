@@ -32,7 +32,7 @@ const generateEmailHTML = (data) => {
   </style></head>
   <body>
     <div class="container">
-      <h1>Заявка с калькулятора анализов — МЦ «Диагноз»</h1>
+      <h1>Заявка с калькулятора анализов - Diagnoz Medical Center</h1>
       <div class="field"><span class="label">Имя:</span> ${data.firstName}</div>
       <div class="field"><span class="label">Фамилия:</span> ${data.lastName}</div>
       <div class="field"><span class="label">Телефон:</span> ${data.phone}</div>
