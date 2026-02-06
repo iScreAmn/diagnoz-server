@@ -4,7 +4,9 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import callbackRoutes from './src/callback/routes/callback.js';
+import calculatorRoutes from './src/calculator/routes/calculator.js';
 import { verifyEmailConfig as verifyCallbackEmail } from './src/callback/services/emailService.js';
+import { verifyEmailConfig as verifyCalculatorEmail } from './src/calculator/services/emailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -119,16 +121,21 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/api/health/email', async (req, res) => {
-  const callbackOk = await verifyCallbackEmail();
+  const [callbackOk, calculatorOk] = await Promise.all([
+    verifyCallbackEmail(),
+    verifyCalculatorEmail()
+  ]);
   res.json({
-    success: callbackOk,
+    success: callbackOk && calculatorOk,
     callback: callbackOk,
+    calculator: calculatorOk,
     timestamp: new Date().toISOString()
   });
 });
 
 app.use('/api', rateLimit);
 app.use('/api/callback', callbackRoutes);
+app.use('/api/calculator', calculatorRoutes);
 
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
