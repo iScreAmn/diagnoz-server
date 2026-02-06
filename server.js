@@ -31,6 +31,8 @@ const defaultOrigins = [
   'http://127.0.0.1:5173',
   'http://127.0.0.1:4173',
   'http://127.0.0.1:3000',
+  'https://diagnoz.ge',
+  'https://www.diagnoz.ge',
   'https://diagnoz-clinic.vercel.app',
   'https://www.diagnoz-clinic.vercel.app'
 ];
