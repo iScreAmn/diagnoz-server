@@ -103,6 +103,8 @@ const rateLimit = (req, res, next) => {
   return next();
 };
 
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 app.get('/', (req, res) => {
   res.json({
     status: 'OK',
