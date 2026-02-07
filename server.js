@@ -5,8 +5,10 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import callbackRoutes from './src/callback/routes/callback.js';
 import calculatorRoutes from './src/calculator/routes/calculator.js';
+import appointmentRoutes from './src/appointment/routes/appointment.js';
 import { verifyEmailConfig as verifyCallbackEmail } from './src/callback/services/emailService.js';
 import { verifyEmailConfig as verifyCalculatorEmail } from './src/calculator/services/emailService.js';
+import { verifyEmailConfig as verifyAppointmentEmail } from './src/appointment/services/emailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -121,14 +123,16 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/api/health/email', async (req, res) => {
-  const [callbackOk, calculatorOk] = await Promise.all([
+  const [callbackOk, calculatorOk, appointmentOk] = await Promise.all([
     verifyCallbackEmail(),
-    verifyCalculatorEmail()
+    verifyCalculatorEmail(),
+    verifyAppointmentEmail()
   ]);
   res.json({
-    success: callbackOk && calculatorOk,
+    success: callbackOk && calculatorOk && appointmentOk,
     callback: callbackOk,
     calculator: calculatorOk,
+    appointment: appointmentOk,
     timestamp: new Date().toISOString()
   });
 });
@@ -136,6 +140,7 @@ app.get('/api/health/email', async (req, res) => {
 app.use('/api', rateLimit);
 app.use('/api/callback', callbackRoutes);
 app.use('/api/calculator', calculatorRoutes);
+app.use('/api/appointment', appointmentRoutes);
 
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
