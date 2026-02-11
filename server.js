@@ -88,6 +88,7 @@ const getClientIp = (req) => {
 };
 
 const rateLimit = (req, res, next) => {
+  if (req.path.startsWith('/api/admin')) return next();
   const ip = getClientIp(req);
   const now = Date.now();
   const current = rateLimitStore.get(ip);
