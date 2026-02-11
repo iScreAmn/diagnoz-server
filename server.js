@@ -6,6 +6,7 @@ import { dirname, join } from 'path';
 import callbackRoutes from './src/callback/routes/callback.js';
 import calculatorRoutes from './src/calculator/routes/calculator.js';
 import appointmentRoutes from './src/appointment/routes/appointment.js';
+import adminAppointmentsRoutes from './src/admin/routes/adminAppointments.js';
 import { verifyEmailConfig as verifyCallbackEmail } from './src/callback/services/emailService.js';
 import { verifyEmailConfig as verifyCalculatorEmail } from './src/calculator/services/emailService.js';
 import { verifyEmailConfig as verifyAppointmentEmail } from './src/appointment/services/emailService.js';
@@ -23,6 +24,11 @@ if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
 if (!process.env.ADMIN_EMAIL) {
   console.error('WARNING: ADMIN_EMAIL not found in .env file!');
   console.error('Emails will not be sent until ADMIN_EMAIL is configured');
+}
+
+if (!process.env.ADMIN_API_TOKEN) {
+  console.error('WARNING: ADMIN_API_TOKEN not found in .env file!');
+  console.error('Admin API will be inaccessible until ADMIN_API_TOKEN is configured');
 }
 
 const app = express();
@@ -143,6 +149,7 @@ app.use('/api', rateLimit);
 app.use('/api/callback', callbackRoutes);
 app.use('/api/calculator', calculatorRoutes);
 app.use('/api/appointment', appointmentRoutes);
+app.use('/api/admin', adminAppointmentsRoutes);
 
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
