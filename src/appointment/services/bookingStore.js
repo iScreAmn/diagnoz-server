@@ -90,6 +90,18 @@ export const releaseDate = (doctor, date) => {
   pending.delete(dateKey);
 };
 
+export const unbookDate = (doctor, date) => {
+  const doctorKey = normalizeDoctorKey(doctor);
+  const dateKey = toDateKey(date);
+  if (!doctorKey || !dateKey) return;
+
+  const pending = ensureDoctorSet(pendingDatesByDoctor, doctorKey);
+  pending.delete(dateKey);
+
+  const booked = ensureDoctorSet(bookedDatesByDoctor, doctorKey);
+  booked.delete(dateKey);
+};
+
 const inRange = (date, from, to) => {
   if (from && date < from) return false;
   if (to && date > to) return false;

@@ -1,4 +1,5 @@
 import { sendAppointmentAdminEmail } from '../services/emailService.js';
+import { appointmentRepository } from '../repositories/appointmentRepository.js';
 import {
   confirmDate,
   getUnavailableDates,
@@ -8,6 +9,7 @@ import {
 } from '../services/bookingStore.js';
 
 const phoneRegex = /^\+?[0-9]{7,15}$/;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const normalizePhone = (phone) => {
   if (!phone) return '';
@@ -38,7 +40,7 @@ export const submitAppointment = async (req, res) => {
   let appointmentDate = '';
 
   try {
-    const { doctor, name, phone, appointmentDate: rawAppointmentDate, consent } = req.body;
+    const { doctor, name, phone, email, appointmentDate: rawAppointmentDate, consent } = req.body;
 
     if (!doctor || !String(doctor).trim()) {
       return res.status(400).json({
@@ -103,10 +105,20 @@ export const submitAppointment = async (req, res) => {
       });
     }
 
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    if (normalizedEmail && !emailRegex.test(normalizedEmail)) {
+      releaseDate(doctorName, appointmentDate);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format.'
+      });
+    }
+
     const emailData = {
       doctor: doctorName,
       name: String(name).trim(),
       phone: normalizedPhone,
+      email: normalizedEmail,
       appointmentDate,
       consent: Boolean(consent),
       submitted_at: new Date().toLocaleString('ru-RU', {
@@ -124,11 +136,21 @@ export const submitAppointment = async (req, res) => {
 
     await sendAppointmentAdminEmail(emailData);
     confirmDate(doctorName, appointmentDate);
-
-    console.log('Appointment submission:', {
+    const savedAppointment = appointmentRepository.create({
       doctor: emailData.doctor,
       name: emailData.name,
       phone: emailData.phone,
+      email: emailData.email,
+      appointmentDate: emailData.appointmentDate,
+      consent: emailData.consent
+    });
+
+    console.log('Appointment submission:', {
+      id: savedAppointment.id,
+      doctor: emailData.doctor,
+      name: emailData.name,
+      phone: emailData.phone,
+      email: emailData.email || '-',
       appointmentDate: emailData.appointmentDate,
       timestamp: emailData.submitted_at
     });
@@ -137,6 +159,7 @@ export const submitAppointment = async (req, res) => {
       success: true,
       message: 'Заявка успешно отправлена!',
       data: {
+        id: savedAppointment.id,
         timestamp: emailData.submitted_at,
         appointmentDate: emailData.appointmentDate
       }
