@@ -38,6 +38,10 @@ const generateEmailHTML = (data) => `
         <span>${data.phone}</span>
       </div>
       <div class="field">
+        <span class="label">Дата приёма:</span>
+        <span>${data.appointmentDate || '-'}</span>
+      </div>
+      <div class="field">
         <span class="label">Согласие на обработку данных:</span>
         <span>${data.consent ? 'Да' : 'Нет'}</span>
       </div>
@@ -57,6 +61,7 @@ ${'='.repeat(40)}
 Врач: ${data.doctor}
 Имя пациента: ${data.name}
 Телефон: ${data.phone}
+Дата приёма: ${data.appointmentDate || '-'}
 Согласие: ${data.consent ? 'Да' : 'Нет'}
 
 Отправлено: ${data.submitted_at}

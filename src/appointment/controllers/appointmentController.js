@@ -1,4 +1,11 @@
 import { sendAppointmentAdminEmail } from '../services/emailService.js';
+import {
+  confirmDate,
+  getUnavailableDates,
+  normalizeAppointmentDate,
+  releaseDate,
+  reserveDate
+} from '../services/bookingStore.js';
 
 const phoneRegex = /^\+?[0-9]{7,15}$/;
 
@@ -11,34 +18,85 @@ const normalizePhone = (phone) => {
   return cleaned;
 };
 
+const getTodayDateTbilisi = () => {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tbilisi',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(now);
+
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  return `${year}-${month}-${day}`;
+};
+
 export const submitAppointment = async (req, res) => {
+  let doctorName = '';
+  let appointmentDate = '';
+
   try {
-    const { doctor, name, phone, consent } = req.body;
+    const { doctor, name, phone, appointmentDate: rawAppointmentDate, consent } = req.body;
 
     if (!doctor || !String(doctor).trim()) {
       return res.status(400).json({
         success: false,
         message: 'Missing required field: doctor',
-        required: ['doctor', 'name', 'phone']
+        required: ['doctor', 'name', 'phone', 'appointmentDate']
       });
     }
     if (!name || !String(name).trim()) {
       return res.status(400).json({
         success: false,
         message: 'Missing required field: name',
-        required: ['doctor', 'name', 'phone']
+        required: ['doctor', 'name', 'phone', 'appointmentDate']
       });
     }
     if (!phone || !String(phone).trim()) {
       return res.status(400).json({
         success: false,
         message: 'Missing required field: phone',
-        required: ['doctor', 'name', 'phone']
+        required: ['doctor', 'name', 'phone', 'appointmentDate']
+      });
+    }
+
+    appointmentDate = normalizeAppointmentDate(rawAppointmentDate);
+    if (!appointmentDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing or invalid required field: appointmentDate',
+        required: ['doctor', 'name', 'phone', 'appointmentDate']
+      });
+    }
+
+    const todayDate = getTodayDateTbilisi();
+    if (appointmentDate < todayDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Appointment date cannot be in the past.'
+      });
+    }
+
+    doctorName = String(doctor).trim();
+
+    const reserved = reserveDate(doctorName, appointmentDate);
+    if (!reserved) {
+      return res.status(409).json({
+        success: false,
+        code: 'DATE_UNAVAILABLE',
+        message: 'Selected date is unavailable for this doctor.',
+        data: {
+          doctor: doctorName,
+          appointmentDate
+        }
       });
     }
 
     const normalizedPhone = normalizePhone(phone);
     if (!phoneRegex.test(normalizedPhone)) {
+      releaseDate(doctorName, appointmentDate);
       return res.status(400).json({
         success: false,
         message: 'Invalid phone format. Expected 7-15 digits (optionally with +).'
@@ -46,9 +104,10 @@ export const submitAppointment = async (req, res) => {
     }
 
     const emailData = {
-      doctor: String(doctor).trim(),
+      doctor: doctorName,
       name: String(name).trim(),
       phone: normalizedPhone,
+      appointmentDate,
       consent: Boolean(consent),
       submitted_at: new Date().toLocaleString('ru-RU', {
         timeZone: 'Asia/Tbilisi',
@@ -64,20 +123,28 @@ export const submitAppointment = async (req, res) => {
     };
 
     await sendAppointmentAdminEmail(emailData);
+    confirmDate(doctorName, appointmentDate);
 
     console.log('Appointment submission:', {
       doctor: emailData.doctor,
       name: emailData.name,
       phone: emailData.phone,
+      appointmentDate: emailData.appointmentDate,
       timestamp: emailData.submitted_at
     });
 
     return res.status(200).json({
       success: true,
       message: 'Заявка успешно отправлена!',
-      data: { timestamp: emailData.submitted_at }
+      data: {
+        timestamp: emailData.submitted_at,
+        appointmentDate: emailData.appointmentDate
+      }
     });
   } catch (error) {
+    if (doctorName && appointmentDate) {
+      releaseDate(doctorName, appointmentDate);
+    }
     const errMsg = error?.message || String(error);
     console.error('Appointment submission error:', errMsg);
     if (error?.stack) console.error(error.stack);
@@ -87,4 +154,52 @@ export const submitAppointment = async (req, res) => {
       error: errMsg
     });
   }
+};
+
+export const getAppointmentCalendar = (req, res) => {
+  const { doctor, from, to } = req.query;
+  const doctorName = String(doctor || '').trim();
+
+  if (!doctorName) {
+    return res.status(400).json({
+      success: false,
+      message: 'Query param "doctor" is required.'
+    });
+  }
+
+  const fromDate = from ? normalizeAppointmentDate(from) : '';
+  const toDate = to ? normalizeAppointmentDate(to) : '';
+
+  if (from && !fromDate) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid "from" date. Expected YYYY-MM-DD.'
+    });
+  }
+
+  if (to && !toDate) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid "to" date. Expected YYYY-MM-DD.'
+    });
+  }
+
+  if (fromDate && toDate && fromDate > toDate) {
+    return res.status(400).json({
+      success: false,
+      message: '"from" date must be less than or equal to "to" date.'
+    });
+  }
+
+  const unavailableDates = getUnavailableDates(doctorName, fromDate, toDate);
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      doctor: doctorName,
+      from: fromDate || null,
+      to: toDate || null,
+      unavailableDates
+    }
+  });
 };
