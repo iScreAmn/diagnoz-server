@@ -7,6 +7,7 @@ import callbackRoutes from './src/callback/routes/callback.js';
 import calculatorRoutes from './src/calculator/routes/calculator.js';
 import appointmentRoutes from './src/appointment/routes/appointment.js';
 import adminAppointmentsRoutes from './src/admin/routes/adminAppointments.js';
+import { connectDB } from './src/config/db.js';
 import { verifyEmailConfig as verifyCallbackEmail } from './src/callback/services/emailService.js';
 import { verifyEmailConfig as verifyCalculatorEmail } from './src/calculator/services/emailService.js';
 import { verifyEmailConfig as verifyAppointmentEmail } from './src/appointment/services/emailService.js';
@@ -177,6 +178,10 @@ app.use((req, res) => {
   });
 });
 
+console.log('[SERVER] VERCEL=', process.env.VERCEL, '| NODE_ENV=', process.env.NODE_ENV);
+await connectDB();
+console.log('[SERVER] MongoDB connected');
+
 if (process.env.VERCEL !== '1') {
   app.listen(PORT, () => {
     console.log('='.repeat(50));
@@ -195,6 +200,8 @@ if (process.env.VERCEL !== '1') {
     console.error('Unhandled Rejection:', err);
     process.exit(1);
   });
+} else {
+  console.log('[SERVER] running on Vercel (no listen)');
 }
 
 export default app;
