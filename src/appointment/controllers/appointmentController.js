@@ -1,12 +1,6 @@
 import { sendAppointmentAdminEmail } from '../services/emailService.js';
 import { appointmentRepository } from '../repositories/appointmentRepository.js';
-import {
-  confirmDate,
-  getUnavailableDates,
-  normalizeAppointmentDate,
-  releaseDate,
-  reserveDate
-} from '../services/bookingStore.js';
+import { normalizeAppointmentDate } from '../services/bookingStore.js';
 
 const phoneRegex = /^\+?[0-9]{7,15}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -36,9 +30,6 @@ const getTodayDateTbilisi = () => {
 };
 
 export const submitAppointment = async (req, res) => {
-  let doctorName = '';
-  let appointmentDate = '';
-
   try {
     const { doctor, name, phone, email, appointmentDate: rawAppointmentDate, consent } = req.body;
 
@@ -64,7 +55,7 @@ export const submitAppointment = async (req, res) => {
       });
     }
 
-    appointmentDate = normalizeAppointmentDate(rawAppointmentDate);
+    const appointmentDate = normalizeAppointmentDate(rawAppointmentDate);
     if (!appointmentDate) {
       return res.status(400).json({
         success: false,
@@ -81,24 +72,10 @@ export const submitAppointment = async (req, res) => {
       });
     }
 
-    doctorName = String(doctor).trim();
-
-    const reserved = reserveDate(doctorName, appointmentDate);
-    if (!reserved) {
-      return res.status(409).json({
-        success: false,
-        code: 'DATE_UNAVAILABLE',
-        message: 'Selected date is unavailable for this doctor.',
-        data: {
-          doctor: doctorName,
-          appointmentDate
-        }
-      });
-    }
+    const doctorName = String(doctor).trim();
 
     const normalizedPhone = normalizePhone(phone);
     if (!phoneRegex.test(normalizedPhone)) {
-      releaseDate(doctorName, appointmentDate);
       return res.status(400).json({
         success: false,
         message: 'Invalid phone format. Expected 7-15 digits (optionally with +).'
@@ -107,7 +84,6 @@ export const submitAppointment = async (req, res) => {
 
     const normalizedEmail = String(email || '').trim().toLowerCase();
     if (normalizedEmail && !emailRegex.test(normalizedEmail)) {
-      releaseDate(doctorName, appointmentDate);
       return res.status(400).json({
         success: false,
         message: 'Invalid email format.'
@@ -135,8 +111,7 @@ export const submitAppointment = async (req, res) => {
     };
 
     await sendAppointmentAdminEmail(emailData);
-    confirmDate(doctorName, appointmentDate);
-    const savedAppointment = appointmentRepository.create({
+    const savedAppointment = await appointmentRepository.create({
       doctor: emailData.doctor,
       name: emailData.name,
       phone: emailData.phone,
@@ -165,9 +140,15 @@ export const submitAppointment = async (req, res) => {
       }
     });
   } catch (error) {
-    if (doctorName && appointmentDate) {
-      releaseDate(doctorName, appointmentDate);
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        code: 'DATE_UNAVAILABLE',
+        message: 'Selected date is unavailable for this doctor.',
+        errorCode: 'E11000'
+      });
     }
+
     const errMsg = error?.message || String(error);
     console.error('Appointment submission error:', errMsg);
     if (error?.stack) console.error(error.stack);
@@ -179,7 +160,7 @@ export const submitAppointment = async (req, res) => {
   }
 };
 
-export const getAppointmentCalendar = (req, res) => {
+export const getAppointmentCalendar = async (req, res) => {
   const { doctor, from, to } = req.query;
   const doctorName = String(doctor || '').trim();
 
@@ -214,15 +195,27 @@ export const getAppointmentCalendar = (req, res) => {
     });
   }
 
-  const unavailableDates = getUnavailableDates(doctorName, fromDate, toDate);
+  try {
+    const unavailableDates = await appointmentRepository.findUnavailableDates(
+      doctorName,
+      fromDate,
+      toDate
+    );
 
-  return res.status(200).json({
-    success: true,
-    data: {
-      doctor: doctorName,
-      from: fromDate || null,
-      to: toDate || null,
-      unavailableDates
-    }
-  });
+    return res.status(200).json({
+      success: true,
+      data: {
+        doctor: doctorName,
+        from: fromDate || null,
+        to: toDate || null,
+        unavailableDates
+      }
+    });
+  } catch (error) {
+    console.error('Get appointment calendar error:', error?.message || error);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to load appointment calendar'
+    });
+  }
 };
