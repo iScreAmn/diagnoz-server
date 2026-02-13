@@ -26,9 +26,14 @@ if (!process.env.ADMIN_EMAIL) {
   console.error('Emails will not be sent until ADMIN_EMAIL is configured');
 }
 
-if (!process.env.ADMIN_API_TOKEN) {
-  console.error('WARNING: ADMIN_API_TOKEN not found in .env file!');
-  console.error('Admin API will be inaccessible until ADMIN_API_TOKEN is configured');
+if (!process.env.ADMIN_LOGIN || !process.env.ADMIN_PASSWORD_HASH) {
+  console.error('WARNING: ADMIN_LOGIN or ADMIN_PASSWORD_HASH not found in .env file!');
+  console.error('Admin login will be inaccessible until credentials are configured');
+}
+
+if (!process.env.JWT_SECRET) {
+  console.error('WARNING: JWT_SECRET not found in .env file!');
+  console.error('Admin API JWT auth will be inaccessible until JWT_SECRET is configured');
 }
 
 const app = express();
