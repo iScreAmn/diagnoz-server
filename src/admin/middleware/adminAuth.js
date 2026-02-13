@@ -1,36 +1,36 @@
-import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 
-const readTokenFromHeaders = (req) => {
+const readBearerToken = (req) => {
   const bearer = req.get('authorization');
-  if (bearer?.startsWith('Bearer ')) {
-    return bearer.slice('Bearer '.length).trim();
-  }
-  return req.get('x-admin-token')?.trim() || '';
-};
-
-const secureEqual = (left, right) => {
-  const a = Buffer.from(left, 'utf8');
-  const b = Buffer.from(right, 'utf8');
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(a, b);
+  if (!bearer?.startsWith('Bearer ')) return '';
+  return bearer.slice('Bearer '.length).trim();
 };
 
 export const requireAdminAuth = (req, res, next) => {
-  const configuredToken = String(process.env.ADMIN_API_TOKEN || '').trim();
-  if (!configuredToken) {
+  const secret = String(process.env.JWT_SECRET || '').trim();
+  if (!secret) {
     return res.status(500).json({
       success: false,
-      message: 'Admin auth is not configured on server.'
+      message: 'JWT auth is not configured on server.'
     });
   }
 
-  const providedToken = readTokenFromHeaders(req);
-  if (!providedToken || !secureEqual(providedToken, configuredToken)) {
+  const token = readBearerToken(req);
+  if (!token) {
     return res.status(401).json({
       success: false,
       message: 'Unauthorized'
     });
   }
 
-  return next();
+  try {
+    const payload = jwt.verify(token, secret);
+    req.admin = payload;
+    return next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: 'Unauthorized'
+    });
+  }
 };

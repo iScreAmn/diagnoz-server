@@ -1,8 +1,11 @@
 import express from 'express';
 import { deleteAppointment, getAllAppointments } from '../controllers/adminAppointmentsController.js';
+import { loginAdmin } from '../controllers/adminAuthController.js';
 import { requireAdminAuth } from '../middleware/adminAuth.js';
 
 const router = express.Router();
+
+router.post('/login', loginAdmin);
 
 router.use(requireAdminAuth);
 
