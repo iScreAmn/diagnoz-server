@@ -34,6 +34,9 @@ export const createAppointment = async (req, res) => {
   try {
     const doctor = String(req.body?.doctor || '').trim();
     const patientName = String(req.body?.patientName || '').trim();
+    const phone = String(req.body?.phone || '').trim();
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const consent = Boolean(req.body?.consent);
     const rawAppointmentDate = String(req.body?.appointmentDate || '').trim();
     const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(rawAppointmentDate);
 
@@ -48,6 +51,28 @@ export const createAppointment = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Missing required field: patientName'
+      });
+    }
+
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: phone'
+      });
+    }
+
+    const normalizedPhone = normalizePhone(phone);
+    if (!phoneRegex.test(normalizedPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid phone format. Expected 7-15 digits (optionally with +).'
+      });
+    }
+
+    if (email && !emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format.'
       });
     }
 
@@ -103,6 +128,10 @@ export const createAppointment = async (req, res) => {
     const savedAppointment = await appointmentRepository.create({
       doctor,
       patientName,
+      name: patientName,
+      phone: normalizedPhone,
+      email,
+      consent,
       appointmentDate: isDateOnly ? normalizedDateOnly : appointmentDate.toISOString()
     });
 
@@ -112,6 +141,8 @@ export const createAppointment = async (req, res) => {
         id: savedAppointment.id,
         doctor: savedAppointment.doctor,
         patientName: savedAppointment.patientName,
+        phone: savedAppointment.phone,
+        email: savedAppointment.email,
         appointmentDate: savedAppointment.appointmentDate
       }
     });
