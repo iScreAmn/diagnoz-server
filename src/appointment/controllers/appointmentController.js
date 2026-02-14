@@ -30,6 +30,29 @@ const getTodayDateTbilisi = () => {
   return `${year}-${month}-${day}`;
 };
 
+const getClinicDateTimeParts = (date) => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tbilisi',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  const hour = parts.find((part) => part.type === 'hour')?.value;
+  const minute = parts.find((part) => part.type === 'minute')?.value;
+
+  return {
+    date: `${year}-${month}-${day}`,
+    time: `${hour}:${minute}`
+  };
+};
+
 export const createAppointment = async (req, res) => {
   try {
     const doctor = String(req.body?.doctor || '').trim();
@@ -125,6 +148,8 @@ export const createAppointment = async (req, res) => {
       });
     }
 
+    const clinicDateTime = getClinicDateTimeParts(appointmentDate);
+
     const savedAppointment = await appointmentRepository.create({
       doctor,
       patientName,
@@ -132,7 +157,9 @@ export const createAppointment = async (req, res) => {
       phone: normalizedPhone,
       email,
       consent,
-      appointmentDate: isDateOnly ? normalizedDateOnly : appointmentDate.toISOString()
+      appointmentDate: isDateOnly
+        ? normalizedDateOnly
+        : `${clinicDateTime.date}T${clinicDateTime.time}`
     });
 
     return res.status(201).json({
