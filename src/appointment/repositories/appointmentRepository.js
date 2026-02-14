@@ -4,6 +4,7 @@ import { getDB } from '../../config/db.js';
 const mapAppointment = (doc) => ({
   id: String(doc._id),
   doctor: doc.doctor,
+  patientName: doc.patientName || doc.name || '',
   name: doc.name,
   phone: doc.phone,
   email: doc.email || '',
@@ -18,6 +19,7 @@ export const appointmentRepository = {
   async create(record) {
     const payload = {
       doctor: record.doctor,
+      patientName: record.patientName || record.name || '',
       name: record.name,
       phone: record.phone,
       email: record.email || '',

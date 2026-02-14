@@ -1,6 +1,7 @@
 import { sendAppointmentAdminEmail } from '../services/emailService.js';
 import { appointmentRepository } from '../repositories/appointmentRepository.js';
 import { normalizeAppointmentDate } from '../services/bookingStore.js';
+import { validateClinicHours } from '../services/clinicHours.js';
 
 const phoneRegex = /^\+?[0-9]{7,15}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -27,6 +28,87 @@ const getTodayDateTbilisi = () => {
   const month = parts.find((part) => part.type === 'month')?.value;
   const day = parts.find((part) => part.type === 'day')?.value;
   return `${year}-${month}-${day}`;
+};
+
+export const createAppointment = async (req, res) => {
+  try {
+    const doctor = String(req.body?.doctor || '').trim();
+    const patientName = String(req.body?.patientName || '').trim();
+    const rawAppointmentDate = String(req.body?.appointmentDate || '').trim();
+
+    if (!doctor) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: doctor'
+      });
+    }
+
+    if (!patientName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: patientName'
+      });
+    }
+
+    if (!rawAppointmentDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: appointmentDate'
+      });
+    }
+
+    const appointmentDate = new Date(rawAppointmentDate);
+    if (Number.isNaN(appointmentDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid appointmentDate. Expected a valid ISO datetime string.'
+      });
+    }
+
+    if (appointmentDate.getTime() < Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Appointment date cannot be in the past.'
+      });
+    }
+
+    const clinicHoursValidation = validateClinicHours(appointmentDate);
+    if (!clinicHoursValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: clinicHoursValidation.message
+      });
+    }
+
+    const savedAppointment = await appointmentRepository.create({
+      doctor,
+      patientName,
+      appointmentDate: appointmentDate.toISOString()
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        id: savedAppointment.id,
+        doctor: savedAppointment.doctor,
+        patientName: savedAppointment.patientName,
+        appointmentDate: savedAppointment.appointmentDate
+      }
+    });
+  } catch (error) {
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: 'Selected appointment slot is already occupied.'
+      });
+    }
+
+    console.error('Create appointment error:', error?.message || error);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to create appointment'
+    });
+  }
 };
 
 export const submitAppointment = async (req, res) => {
