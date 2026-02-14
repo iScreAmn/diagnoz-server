@@ -7,6 +7,7 @@ import callbackRoutes from './src/callback/routes/callback.js';
 import calculatorRoutes from './src/calculator/routes/calculator.js';
 import appointmentRoutes from './src/appointment/routes/appointment.js';
 import adminAppointmentsRoutes from './src/admin/routes/adminAppointments.js';
+import { createAppointment } from './src/appointment/controllers/appointmentController.js';
 import { connectDB } from './src/config/db.js';
 import { verifyEmailConfig as verifyCallbackEmail } from './src/callback/services/emailService.js';
 import { verifyEmailConfig as verifyCalculatorEmail } from './src/calculator/services/emailService.js';
@@ -156,6 +157,7 @@ app.get('/api/health/email', async (req, res) => {
 });
 
 app.use('/api', rateLimit);
+app.post('/appointments', createAppointment);
 app.use('/api/callback', callbackRoutes);
 app.use('/api/calculator', calculatorRoutes);
 app.use('/api/appointment', appointmentRoutes);
