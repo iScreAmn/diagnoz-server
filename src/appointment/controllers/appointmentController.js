@@ -35,6 +35,7 @@ export const createAppointment = async (req, res) => {
     const doctor = String(req.body?.doctor || '').trim();
     const patientName = String(req.body?.patientName || '').trim();
     const rawAppointmentDate = String(req.body?.appointmentDate || '').trim();
+    const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(rawAppointmentDate);
 
     if (!doctor) {
       return res.status(400).json({
@@ -57,15 +58,34 @@ export const createAppointment = async (req, res) => {
       });
     }
 
-    const appointmentDate = new Date(rawAppointmentDate);
-    if (Number.isNaN(appointmentDate.getTime())) {
+    const normalizedDateOnly = isDateOnly ? normalizeAppointmentDate(rawAppointmentDate) : '';
+    if (isDateOnly && !normalizedDateOnly) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid appointmentDate. Expected a valid ISO datetime string.'
+        message: 'Invalid appointmentDate. Expected YYYY-MM-DD.'
       });
     }
 
-    if (appointmentDate.getTime() < Date.now()) {
+    const appointmentDate = isDateOnly
+      ? new Date(`${normalizedDateOnly}T10:00:00+04:00`)
+      : new Date(rawAppointmentDate);
+
+    if (Number.isNaN(appointmentDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid appointmentDate. Expected YYYY-MM-DD or ISO datetime string.'
+      });
+    }
+
+    if (isDateOnly) {
+      const todayDate = getTodayDateTbilisi();
+      if (normalizedDateOnly < todayDate) {
+        return res.status(400).json({
+          success: false,
+          message: 'Appointment date cannot be in the past.'
+        });
+      }
+    } else if (appointmentDate.getTime() < Date.now()) {
       return res.status(400).json({
         success: false,
         message: 'Appointment date cannot be in the past.'
@@ -83,7 +103,7 @@ export const createAppointment = async (req, res) => {
     const savedAppointment = await appointmentRepository.create({
       doctor,
       patientName,
-      appointmentDate: appointmentDate.toISOString()
+      appointmentDate: isDateOnly ? normalizedDateOnly : appointmentDate.toISOString()
     });
 
     return res.status(201).json({
