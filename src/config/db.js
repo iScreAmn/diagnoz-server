@@ -46,9 +46,21 @@ export const connectDB = async () => {
       db = client.db(dbName);
       console.log('[DB] using database:', dbName);
 
-      await db.collection('appointments').createIndex(
+      const coll = db.collection('appointments');
+      try {
+        await coll.dropIndex('uniq_doctor_appointmentDate');
+      } catch {
+        // ignore if index does not exist
+      }
+      await coll.createIndex(
         { doctor: 1, appointmentDate: 1 },
-        { unique: true, name: 'uniq_doctor_appointmentDate' }
+        {
+          unique: true,
+          name: 'uniq_doctor_appointmentDate',
+          partialFilterExpression: {
+          $or: [{ status: { $exists: false } }, { status: { $ne: 'cancelled' } }]
+        }
+        }
       );
       console.log('[DB] appointments index ensured');
 
