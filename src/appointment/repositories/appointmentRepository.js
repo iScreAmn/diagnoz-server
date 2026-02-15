@@ -16,7 +16,7 @@ const mapAppointment = (doc) => ({
   createdAt: doc.createdAt
 });
 
-const getCollection = () => getDB().collection('appointments');
+const getCollection = async () => (await getDB()).collection('appointments');
 
 export const appointmentRepository = {
   async create(record) {
@@ -32,12 +32,14 @@ export const appointmentRepository = {
       createdAt: new Date().toISOString()
     };
 
-    const { insertedId } = await getCollection().insertOne(payload);
+    const collection = await getCollection();
+    const { insertedId } = await collection.insertOne(payload);
     return mapAppointment({ _id: insertedId, ...payload });
   },
 
   async findAll() {
-    const docs = await getCollection()
+    const collection = await getCollection();
+    const docs = await collection
       .find({})
       .sort({ createdAt: -1 })
       .toArray();
@@ -60,7 +62,8 @@ export const appointmentRepository = {
       if (to) query.appointmentDate.$lte = to;
     }
 
-    const docs = await getCollection()
+    const collection = await getCollection();
+    const docs = await collection
       .find(query, { projection: { _id: 0, appointmentDate: 1 } })
       .sort({ appointmentDate: 1 })
       .toArray();
@@ -73,7 +76,8 @@ export const appointmentRepository = {
     if (!ObjectId.isValid(normalizedId)) return null;
     if (!STATUSES.includes(status)) return null;
 
-    const result = await getCollection().findOneAndUpdate(
+    const collection = await getCollection();
+    const result = await collection.findOneAndUpdate(
       { _id: new ObjectId(normalizedId) },
       { $set: { status } },
       { returnDocument: 'after' }
@@ -87,7 +91,8 @@ export const appointmentRepository = {
     const normalizedId = String(id || '').trim();
     if (!ObjectId.isValid(normalizedId)) return null;
 
-    const result = await getCollection().findOneAndDelete({
+    const collection = await getCollection();
+    const result = await collection.findOneAndDelete({
       _id: new ObjectId(normalizedId)
     });
 

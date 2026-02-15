@@ -75,9 +75,10 @@ export const connectDB = async () => {
   return connectPromise;
 };
 
-export const getDB = () => {
+export const getDB = async () => {
   if (!db) {
-    throw new Error('Database is not connected. Call connectDB() first.');
+    console.log('[DB] getDB() called but not connected, connecting now...');
+    await connectDB();
   }
   return db;
 };
