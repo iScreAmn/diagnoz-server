@@ -1,6 +1,8 @@
 import { ObjectId } from 'mongodb';
 import { getDB } from '../../config/db.js';
 
+const STATUSES = ['pending', 'confirmed', 'cancelled', 'completed'];
+
 const mapAppointment = (doc) => ({
   id: String(doc._id),
   doctor: doc.doctor,
@@ -10,6 +12,7 @@ const mapAppointment = (doc) => ({
   email: doc.email || '',
   appointmentDate: doc.appointmentDate,
   consent: Boolean(doc.consent),
+  status: STATUSES.includes(doc.status) ? doc.status : 'pending',
   createdAt: doc.createdAt
 });
 
@@ -25,6 +28,7 @@ export const appointmentRepository = {
       email: record.email || '',
       appointmentDate: record.appointmentDate,
       consent: Boolean(record.consent),
+      status: STATUSES.includes(record.status) ? record.status : 'pending',
       createdAt: new Date().toISOString()
     };
 
@@ -43,7 +47,11 @@ export const appointmentRepository = {
 
   async findUnavailableDates(doctor, from, to) {
     const query = {
-      doctor: String(doctor || '').trim()
+      doctor: String(doctor || '').trim(),
+      $or: [
+        { status: { $in: ['pending', 'confirmed'] } },
+        { status: { $exists: false } }
+      ]
     };
 
     if (from || to) {
@@ -58,6 +66,21 @@ export const appointmentRepository = {
       .toArray();
 
     return docs.map((item) => item.appointmentDate);
+  },
+
+  async updateStatus(id, status) {
+    const normalizedId = String(id || '').trim();
+    if (!ObjectId.isValid(normalizedId)) return null;
+    if (!STATUSES.includes(status)) return null;
+
+    const result = await getCollection().findOneAndUpdate(
+      { _id: new ObjectId(normalizedId) },
+      { $set: { status } },
+      { returnDocument: 'after' }
+    );
+
+    if (!result) return null;
+    return mapAppointment(result);
   },
 
   async deleteById(id) {
