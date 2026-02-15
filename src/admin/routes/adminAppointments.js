@@ -1,5 +1,9 @@
 import express from 'express';
-import { deleteAppointment, getAllAppointments } from '../controllers/adminAppointmentsController.js';
+import {
+  deleteAppointment,
+  getAllAppointments,
+  updateAppointmentStatus
+} from '../controllers/adminAppointmentsController.js';
 import { loginAdmin } from '../controllers/adminAuthController.js';
 import { requireAdminAuth } from '../middleware/adminAuth.js';
 
@@ -10,6 +14,7 @@ router.post('/login', loginAdmin);
 router.use(requireAdminAuth);
 
 router.get('/appointments', getAllAppointments);
+router.patch('/appointments/:id/status', updateAppointmentStatus);
 router.delete('/appointments/:id', deleteAppointment);
 
 export default router;

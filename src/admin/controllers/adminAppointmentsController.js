@@ -1,15 +1,65 @@
 import { appointmentRepository } from '../../appointment/repositories/appointmentRepository.js';
-import { unbookDate } from '../../appointment/services/bookingStore.js';
 
-export const getAllAppointments = (req, res) => {
-  const appointments = appointmentRepository.findAll();
-  return res.status(200).json({
-    success: true,
-    data: appointments
-  });
+const VALID_STATUSES = ['pending', 'confirmed', 'cancelled', 'completed'];
+
+export const getAllAppointments = async (req, res) => {
+  try {
+    const appointments = await appointmentRepository.findAll();
+    return res.status(200).json({
+      success: true,
+      data: appointments
+    });
+  } catch (error) {
+    console.error('Get all appointments error:', error?.message || error);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to load appointments'
+    });
+  }
 };
 
-export const deleteAppointment = (req, res) => {
+export const updateAppointmentStatus = async (req, res) => {
+  const id = String(req.params.id || '').trim();
+  const status = String(req.body?.status || '').trim().toLowerCase();
+
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing appointment id'
+    });
+  }
+
+  if (!VALID_STATUSES.includes(status)) {
+    return res.status(400).json({
+      success: false,
+      message: `Invalid status. Allowed: ${VALID_STATUSES.join(', ')}`
+    });
+  }
+
+  try {
+    const updated = await appointmentRepository.updateStatus(id, status);
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: 'Appointment not found'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Status updated',
+      data: updated
+    });
+  } catch (error) {
+    console.error('Update appointment status error:', error?.message || error);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to update status'
+    });
+  }
+};
+
+export const deleteAppointment = async (req, res) => {
   const id = String(req.params.id || '').trim();
   if (!id) {
     return res.status(400).json({
@@ -18,19 +68,25 @@ export const deleteAppointment = (req, res) => {
     });
   }
 
-  const removed = appointmentRepository.deleteById(id);
-  if (!removed) {
-    return res.status(404).json({
+  try {
+    const updated = await appointmentRepository.updateStatus(id, 'cancelled');
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: 'Appointment not found'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Appointment cancelled',
+      data: updated
+    });
+  } catch (error) {
+    console.error('Cancel appointment error:', error?.message || error);
+    return res.status(500).json({
       success: false,
-      message: 'Appointment not found'
+      message: 'Unable to cancel appointment'
     });
   }
-
-  unbookDate(removed.doctor, removed.appointmentDate);
-
-  return res.status(200).json({
-    success: true,
-    message: 'Appointment removed',
-    data: removed
-  });
 };

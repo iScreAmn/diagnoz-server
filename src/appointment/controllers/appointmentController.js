@@ -1,12 +1,7 @@
 import { sendAppointmentAdminEmail } from '../services/emailService.js';
 import { appointmentRepository } from '../repositories/appointmentRepository.js';
-import {
-  confirmDate,
-  getUnavailableDates,
-  normalizeAppointmentDate,
-  releaseDate,
-  reserveDate
-} from '../services/bookingStore.js';
+import { normalizeAppointmentDate } from '../services/bookingStore.js';
+import { validateClinicHours } from '../services/clinicHours.js';
 
 const phoneRegex = /^\+?[0-9]{7,15}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -35,10 +30,166 @@ const getTodayDateTbilisi = () => {
   return `${year}-${month}-${day}`;
 };
 
-export const submitAppointment = async (req, res) => {
-  let doctorName = '';
-  let appointmentDate = '';
+const getClinicDateTimeParts = (date) => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tbilisi',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).formatToParts(date);
 
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  const hour = parts.find((part) => part.type === 'hour')?.value;
+  const minute = parts.find((part) => part.type === 'minute')?.value;
+
+  return {
+    date: `${year}-${month}-${day}`,
+    time: `${hour}:${minute}`
+  };
+};
+
+export const createAppointment = async (req, res) => {
+  try {
+    const doctor = String(req.body?.doctor || '').trim();
+    const patientName = String(req.body?.patientName || '').trim();
+    const phone = String(req.body?.phone || '').trim();
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const consent = Boolean(req.body?.consent);
+    const rawAppointmentDate = String(req.body?.appointmentDate || '').trim();
+    const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(rawAppointmentDate);
+
+    if (!doctor) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: doctor'
+      });
+    }
+
+    if (!patientName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: patientName'
+      });
+    }
+
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: phone'
+      });
+    }
+
+    const normalizedPhone = normalizePhone(phone);
+    if (!phoneRegex.test(normalizedPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid phone format. Expected 7-15 digits (optionally with +).'
+      });
+    }
+
+    if (email && !emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format.'
+      });
+    }
+
+    if (!rawAppointmentDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: appointmentDate'
+      });
+    }
+
+    const normalizedDateOnly = isDateOnly ? normalizeAppointmentDate(rawAppointmentDate) : '';
+    if (isDateOnly && !normalizedDateOnly) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid appointmentDate. Expected YYYY-MM-DD.'
+      });
+    }
+
+    const appointmentDate = isDateOnly
+      ? new Date(`${normalizedDateOnly}T10:00:00+04:00`)
+      : new Date(rawAppointmentDate);
+
+    if (Number.isNaN(appointmentDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid appointmentDate. Expected YYYY-MM-DD or ISO datetime string.'
+      });
+    }
+
+    if (isDateOnly) {
+      const todayDate = getTodayDateTbilisi();
+      if (normalizedDateOnly < todayDate) {
+        return res.status(400).json({
+          success: false,
+          message: 'Appointment date cannot be in the past.'
+        });
+      }
+    } else if (appointmentDate.getTime() < Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Appointment date cannot be in the past.'
+      });
+    }
+
+    const clinicHoursValidation = validateClinicHours(appointmentDate);
+    if (!clinicHoursValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: clinicHoursValidation.message
+      });
+    }
+
+    const clinicDateTime = getClinicDateTimeParts(appointmentDate);
+
+    const savedAppointment = await appointmentRepository.create({
+      doctor,
+      patientName,
+      name: patientName,
+      phone: normalizedPhone,
+      email,
+      consent,
+      appointmentDate: isDateOnly
+        ? normalizedDateOnly
+        : `${clinicDateTime.date}T${clinicDateTime.time}`
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        id: savedAppointment.id,
+        doctor: savedAppointment.doctor,
+        patientName: savedAppointment.patientName,
+        phone: savedAppointment.phone,
+        email: savedAppointment.email,
+        appointmentDate: savedAppointment.appointmentDate
+      }
+    });
+  } catch (error) {
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: 'Selected appointment slot is already occupied.'
+      });
+    }
+
+    console.error('Create appointment error:', error?.message || error);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to create appointment'
+    });
+  }
+};
+
+export const submitAppointment = async (req, res) => {
   try {
     const { doctor, name, phone, email, appointmentDate: rawAppointmentDate, consent } = req.body;
 
@@ -64,7 +215,7 @@ export const submitAppointment = async (req, res) => {
       });
     }
 
-    appointmentDate = normalizeAppointmentDate(rawAppointmentDate);
+    const appointmentDate = normalizeAppointmentDate(rawAppointmentDate);
     if (!appointmentDate) {
       return res.status(400).json({
         success: false,
@@ -81,24 +232,10 @@ export const submitAppointment = async (req, res) => {
       });
     }
 
-    doctorName = String(doctor).trim();
-
-    const reserved = reserveDate(doctorName, appointmentDate);
-    if (!reserved) {
-      return res.status(409).json({
-        success: false,
-        code: 'DATE_UNAVAILABLE',
-        message: 'Selected date is unavailable for this doctor.',
-        data: {
-          doctor: doctorName,
-          appointmentDate
-        }
-      });
-    }
+    const doctorName = String(doctor).trim();
 
     const normalizedPhone = normalizePhone(phone);
     if (!phoneRegex.test(normalizedPhone)) {
-      releaseDate(doctorName, appointmentDate);
       return res.status(400).json({
         success: false,
         message: 'Invalid phone format. Expected 7-15 digits (optionally with +).'
@@ -107,7 +244,6 @@ export const submitAppointment = async (req, res) => {
 
     const normalizedEmail = String(email || '').trim().toLowerCase();
     if (normalizedEmail && !emailRegex.test(normalizedEmail)) {
-      releaseDate(doctorName, appointmentDate);
       return res.status(400).json({
         success: false,
         message: 'Invalid email format.'
@@ -135,8 +271,7 @@ export const submitAppointment = async (req, res) => {
     };
 
     await sendAppointmentAdminEmail(emailData);
-    confirmDate(doctorName, appointmentDate);
-    const savedAppointment = appointmentRepository.create({
+    const savedAppointment = await appointmentRepository.create({
       doctor: emailData.doctor,
       name: emailData.name,
       phone: emailData.phone,
@@ -165,9 +300,15 @@ export const submitAppointment = async (req, res) => {
       }
     });
   } catch (error) {
-    if (doctorName && appointmentDate) {
-      releaseDate(doctorName, appointmentDate);
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        code: 'DATE_UNAVAILABLE',
+        message: 'Selected date is unavailable for this doctor.',
+        errorCode: 'E11000'
+      });
     }
+
     const errMsg = error?.message || String(error);
     console.error('Appointment submission error:', errMsg);
     if (error?.stack) console.error(error.stack);
@@ -179,7 +320,7 @@ export const submitAppointment = async (req, res) => {
   }
 };
 
-export const getAppointmentCalendar = (req, res) => {
+export const getAppointmentCalendar = async (req, res) => {
   const { doctor, from, to } = req.query;
   const doctorName = String(doctor || '').trim();
 
@@ -214,15 +355,27 @@ export const getAppointmentCalendar = (req, res) => {
     });
   }
 
-  const unavailableDates = getUnavailableDates(doctorName, fromDate, toDate);
+  try {
+    const unavailableDates = await appointmentRepository.findUnavailableDates(
+      doctorName,
+      fromDate,
+      toDate
+    );
 
-  return res.status(200).json({
-    success: true,
-    data: {
-      doctor: doctorName,
-      from: fromDate || null,
-      to: toDate || null,
-      unavailableDates
-    }
-  });
+    return res.status(200).json({
+      success: true,
+      data: {
+        doctor: doctorName,
+        from: fromDate || null,
+        to: toDate || null,
+        unavailableDates
+      }
+    });
+  } catch (error) {
+    console.error('Get appointment calendar error:', error?.message || error);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to load appointment calendar'
+    });
+  }
 };

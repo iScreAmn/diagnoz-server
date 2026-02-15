@@ -1,5 +1,9 @@
 import express from 'express';
-import { getAppointmentCalendar, submitAppointment } from '../controllers/appointmentController.js';
+import {
+  createAppointment,
+  getAppointmentCalendar,
+  submitAppointment
+} from '../controllers/appointmentController.js';
 
 const router = express.Router();
 
@@ -9,6 +13,7 @@ const router = express.Router();
  * Sends appointment form (with selected doctor) to admin email
  */
 router.post('/submit', submitAppointment);
+router.post('/appointments', createAppointment);
 
 /**
  * GET /api/appointment/calendar?doctor=...&from=YYYY-MM-DD&to=YYYY-MM-DD
