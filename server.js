@@ -70,7 +70,7 @@ app.use(cors({
     return callback(new Error(`Not allowed by CORS: ${origin}`));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
@@ -165,6 +165,17 @@ app.use('/api/admin', adminAppointmentsRoutes);
 
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
+  const origin = req.headers.origin;
+  const allowed = [
+    'https://diagnoz.ge',
+    'https://www.diagnoz.ge',
+    'https://diagnoz-clinic.vercel.app',
+    'https://www.diagnoz-clinic.vercel.app'
+  ];
+  if (origin && allowed.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.status(err.status || 500).json({
     success: false,
     message: err.message || 'Internal Server Error',
@@ -181,8 +192,15 @@ app.use((req, res) => {
 });
 
 console.log('[SERVER] VERCEL=', process.env.VERCEL, '| NODE_ENV=', process.env.NODE_ENV);
-await connectDB();
-console.log('[SERVER] MongoDB connected');
+
+(async () => {
+  try {
+    await connectDB();
+    console.log('[SERVER] MongoDB connected');
+  } catch (err) {
+    console.error('[SERVER] MongoDB connection failed:', err?.message);
+  }
+})();
 
 if (process.env.VERCEL !== '1') {
   app.listen(PORT, () => {
