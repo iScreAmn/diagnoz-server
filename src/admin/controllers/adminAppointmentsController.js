@@ -69,8 +69,8 @@ export const deleteAppointment = async (req, res) => {
   }
 
   try {
-    const updated = await appointmentRepository.updateStatus(id, 'cancelled');
-    if (!updated) {
+    const deleted = await appointmentRepository.deleteById(id);
+    if (!deleted) {
       return res.status(404).json({
         success: false,
         message: 'Appointment not found'
@@ -79,14 +79,14 @@ export const deleteAppointment = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Appointment cancelled',
-      data: updated
+      message: 'Appointment deleted',
+      data: deleted
     });
   } catch (error) {
-    console.error('Cancel appointment error:', error?.message || error);
+    console.error('Delete appointment error:', error?.message || error);
     return res.status(500).json({
       success: false,
-      message: 'Unable to cancel appointment'
+      message: 'Unable to delete appointment'
     });
   }
 };
