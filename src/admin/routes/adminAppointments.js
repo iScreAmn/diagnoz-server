@@ -1,5 +1,6 @@
 import express from 'express';
 import {
+  createAdminAppointment,
   deleteAppointment,
   getAllAppointments,
   updateAppointmentStatus
@@ -14,6 +15,7 @@ router.post('/login', loginAdmin);
 router.use(requireAdminAuth);
 
 router.get('/appointments', getAllAppointments);
+router.post('/appointments', createAdminAppointment);
 router.patch('/appointments/:id/status', updateAppointmentStatus);
 router.delete('/appointments/:id', deleteAppointment);
 
