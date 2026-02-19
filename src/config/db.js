@@ -52,14 +52,16 @@ export const connectDB = async () => {
       } catch {
         // ignore if index does not exist
       }
+      try {
+        await coll.dropIndex('uniq_doctor_appointment_slot');
+      } catch {
+        // ignore if index does not exist
+      }
       await coll.createIndex(
         { doctor: 1, appointmentDate: 1 },
         {
           unique: true,
-          name: 'uniq_doctor_appointmentDate',
-          partialFilterExpression: {
-          $or: [{ status: { $exists: false } }, { status: { $ne: 'cancelled' } }]
-        }
+          name: 'uniq_doctor_appointment_slot'
         }
       );
       console.log('[DB] appointments index ensured');
