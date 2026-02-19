@@ -57,7 +57,9 @@ export const createAppointment = async (req, res) => {
   try {
     const doctor = String(req.body?.doctor || '').trim();
     const patientName = String(req.body?.patientName || '').trim();
-    const rawAppointmentDate = req.body?.appointmentDate;
+    const phone = String(req.body?.phone || '').trim();
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const rawAppointmentDate = String(req.body?.appointmentDate || '').trim();
     const appointmentDate = new Date(rawAppointmentDate);
 
     if (!doctor) {
@@ -74,6 +76,28 @@ export const createAppointment = async (req, res) => {
       });
     }
 
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: phone'
+      });
+    }
+
+    const normalizedPhone = normalizePhone(phone);
+    if (!phoneRegex.test(normalizedPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid phone format. Expected 7-15 digits (optionally with +).'
+      });
+    }
+
+    if (email && !emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format.'
+      });
+    }
+
     if (!rawAppointmentDate || Number.isNaN(appointmentDate.getTime())) {
       return res.status(400).json({
         success: false,
@@ -81,11 +105,27 @@ export const createAppointment = async (req, res) => {
       });
     }
 
+    const clinicDateTime = getClinicDateTimeParts(appointmentDate);
+    const localSlot = `${clinicDateTime.date}T${clinicDateTime.time}`;
+    const slotUtcDate = new Date(`${clinicDateTime.date}T${clinicDateTime.time}:00+04:00`);
+
+    const occupied = await appointmentRepository.existsActiveSlot(doctor, localSlot, slotUtcDate);
+    if (occupied) {
+      return res.status(409).json({
+        success: false,
+        message: 'This time slot is already booked'
+      });
+    }
+
     const savedAppointment = await appointmentRepository.create({
       doctor,
       patientName,
-      appointmentDate,
-      status: 'pending'
+      name: patientName,
+      phone: normalizedPhone,
+      email,
+      appointmentDate: localSlot,
+      status: 'pending',
+      consent: Boolean(req.body?.consent)
     });
 
     return res.status(201).json({
@@ -94,6 +134,8 @@ export const createAppointment = async (req, res) => {
         id: savedAppointment.id,
         doctor: savedAppointment.doctor,
         patientName: savedAppointment.patientName,
+        phone: savedAppointment.phone,
+        email: savedAppointment.email,
         appointmentDate: savedAppointment.appointmentDate,
         status: savedAppointment.status,
         createdAt: savedAppointment.createdAt

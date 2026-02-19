@@ -71,6 +71,29 @@ export const appointmentRepository = {
     return docs.map((item) => item.appointmentDate);
   },
 
+  async existsActiveSlot(doctor, localSlot, utcDate) {
+    const normalizedDoctor = String(doctor || '').trim();
+    if (!normalizedDoctor || !localSlot || !utcDate) return false;
+
+    const collection = await getCollection();
+    const isoValue = utcDate.toISOString();
+
+    const conflict = await collection.findOne({
+      doctor: normalizedDoctor,
+      $or: [
+        { status: { $in: ['pending', 'confirmed'] } },
+        { status: { $exists: false } }
+      ],
+      appointmentDate: {
+        $in: [localSlot, utcDate, isoValue]
+      }
+    }, {
+      projection: { _id: 1 }
+    });
+
+    return Boolean(conflict);
+  },
+
   async updateStatus(id, status) {
     const normalizedId = String(id || '').trim();
     if (!ObjectId.isValid(normalizedId)) return null;
