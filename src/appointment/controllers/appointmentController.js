@@ -109,6 +109,13 @@ export const createAppointment = async (req, res) => {
     const localSlot = `${clinicDateTime.date}T${clinicDateTime.time}`;
     const slotUtcDate = new Date(`${clinicDateTime.date}T${clinicDateTime.time}:00+04:00`);
 
+    console.log('[createAppointment] Checking slot:', {
+      doctor,
+      localSlot,
+      slotUtcDate: slotUtcDate.toISOString(),
+      clinicDateTime
+    });
+
     const occupied = await appointmentRepository.existsActiveSlot(doctor, localSlot, slotUtcDate);
     if (occupied) {
       return res.status(409).json({

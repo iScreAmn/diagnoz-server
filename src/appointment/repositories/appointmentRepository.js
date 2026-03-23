@@ -78,6 +78,13 @@ export const appointmentRepository = {
     const collection = await getCollection();
     const isoValue = utcDate.toISOString();
 
+    console.log('[existsActiveSlot] Checking:', {
+      doctor: normalizedDoctor,
+      localSlot,
+      isoValue,
+      utcDate: utcDate.toString()
+    });
+
     const conflict = await collection.findOne({
       doctor: normalizedDoctor,
       $or: [
@@ -88,8 +95,10 @@ export const appointmentRepository = {
         $in: [localSlot, utcDate, isoValue]
       }
     }, {
-      projection: { _id: 1 }
+      projection: { _id: 1, appointmentDate: 1, status: 1 }
     });
+
+    console.log('[existsActiveSlot] Found conflict:', conflict);
 
     return Boolean(conflict);
   },

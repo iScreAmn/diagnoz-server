@@ -53,6 +53,13 @@ export const createAdminAppointment = async (req, res) => {
     const localSlot = `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
     const slotUtcDate = new Date(`${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}:00+04:00`);
 
+    console.log('[createAdminAppointment] Creating slot:', {
+      doctor,
+      localSlot,
+      slotUtcDate: slotUtcDate.toISOString(),
+      rawDate
+    });
+
     const occupied = await appointmentRepository.existsActiveSlot(doctor, localSlot, slotUtcDate);
     if (occupied) {
       return res.status(409).json({ success: false, message: 'This time slot is already booked' });
