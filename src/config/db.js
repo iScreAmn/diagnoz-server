@@ -19,6 +19,9 @@ const resolveDbName = () => {
   return dbNameFromUri || 'diagnoz';
 };
 
+const MAX_CONNECT_RETRIES = 3;
+const RETRY_DELAY_MS = 1500;
+
 export const connectDB = async () => {
   console.log('[DB] connectDB() called');
   if (db) {
@@ -31,47 +34,55 @@ export const connectDB = async () => {
   }
 
   connectPromise = (async () => {
-    try {
-      console.log('[DB] connecting to MongoDB...');
-      if (!client) {
-        client = new MongoClient(mongoUri, {
-          maxPoolSize: 10
-        });
-      }
-
-      await client.connect();
-      console.log('[DB] MongoClient connected');
-
-      const dbName = resolveDbName();
-      db = client.db(dbName);
-      console.log('[DB] using database:', dbName);
-
-      const coll = db.collection('appointments');
+    for (let attempt = 1; attempt <= MAX_CONNECT_RETRIES; attempt++) {
       try {
-        await coll.dropIndex('uniq_doctor_appointmentDate');
-      } catch {
-        // ignore if index does not exist
-      }
-      try {
-        await coll.dropIndex('uniq_doctor_appointment_slot');
-      } catch {
-        // ignore if index does not exist
-      }
-      await coll.createIndex(
-        { doctor: 1, appointmentDate: 1 },
-        {
-          unique: true,
-          name: 'uniq_doctor_appointment_slot'
+        console.log(`[DB] connecting to MongoDB (attempt ${attempt}/${MAX_CONNECT_RETRIES})...`);
+        if (!client) {
+          client = new MongoClient(mongoUri, {
+            maxPoolSize: 10,
+            serverSelectionTimeoutMS: 10000
+          });
         }
-      );
-      console.log('[DB] appointments index ensured');
 
-      return db;
-    } catch (error) {
-      console.error('[DB] connection failed:', error?.message);
-      connectPromise = null;
-      throw error;
+        await client.connect();
+        console.log('[DB] MongoClient connected');
+
+        const dbName = resolveDbName();
+        db = client.db(dbName);
+        console.log('[DB] using database:', dbName);
+
+        const coll = db.collection('appointments');
+        try {
+          await coll.dropIndex('uniq_doctor_appointmentDate');
+        } catch {
+          /* ignore if index does not exist */
+        }
+        try {
+          await coll.dropIndex('uniq_doctor_appointment_slot');
+        } catch {
+          /* ignore if index does not exist */
+        }
+        await coll.createIndex(
+          { doctor: 1, appointmentDate: 1 },
+          {
+            unique: true,
+            name: 'uniq_doctor_appointment_slot'
+          }
+        );
+        console.log('[DB] appointments index ensured');
+
+        return db;
+      } catch (error) {
+        console.error(`[DB] connection failed (attempt ${attempt}):`, error?.message);
+        if (attempt === MAX_CONNECT_RETRIES) {
+          connectPromise = null;
+          throw error;
+        }
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      }
     }
+    connectPromise = null;
+    throw new Error('MongoDB connection failed after retries');
   })();
 
   return connectPromise;
