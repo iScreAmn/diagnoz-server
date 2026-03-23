@@ -125,6 +125,35 @@ export const updateAppointmentStatus = async (req, res) => {
   }
 
   try {
+    if (status === 'confirmed') {
+      const appointment = await appointmentRepository.findById(id);
+      if (!appointment) {
+        return res.status(404).json({
+          success: false,
+          message: 'Appointment not found'
+        });
+      }
+
+      if (appointment.status !== 'confirmed') {
+        const localSlot = appointment.appointmentDate;
+        const slotUtcDate = new Date(`${localSlot}:00+04:00`);
+        
+        const occupied = await appointmentRepository.existsActiveSlotExcludingId(
+          appointment.doctor,
+          localSlot,
+          slotUtcDate,
+          id
+        );
+        
+        if (occupied) {
+          return res.status(409).json({
+            success: false,
+            message: 'This time slot is already booked by another appointment'
+          });
+        }
+      }
+    }
+
     const updated = await appointmentRepository.updateStatus(id, status);
     if (!updated) {
       return res.status(404).json({

@@ -94,6 +94,48 @@ export const appointmentRepository = {
     return Boolean(conflict);
   },
 
+  async findById(id) {
+    const normalizedId = String(id || '').trim();
+    if (!ObjectId.isValid(normalizedId)) return null;
+
+    const collection = await getCollection();
+    const doc = await collection.findOne({
+      _id: new ObjectId(normalizedId)
+    });
+
+    if (!doc) return null;
+    return mapAppointment(doc);
+  },
+
+  async existsActiveSlotExcludingId(doctor, localSlot, utcDate, excludeId) {
+    const normalizedDoctor = String(doctor || '').trim();
+    if (!normalizedDoctor || !localSlot || !utcDate) return false;
+
+    const collection = await getCollection();
+    const isoValue = utcDate.toISOString();
+
+    const query = {
+      doctor: normalizedDoctor,
+      $or: [
+        { status: { $in: ['pending', 'confirmed'] } },
+        { status: { $exists: false } }
+      ],
+      appointmentDate: {
+        $in: [localSlot, utcDate, isoValue]
+      }
+    };
+
+    if (excludeId && ObjectId.isValid(excludeId)) {
+      query._id = { $ne: new ObjectId(excludeId) };
+    }
+
+    const conflict = await collection.findOne(query, {
+      projection: { _id: 1 }
+    });
+
+    return Boolean(conflict);
+  },
+
   async updateStatus(id, status) {
     const normalizedId = String(id || '').trim();
     if (!ObjectId.isValid(normalizedId)) return null;
