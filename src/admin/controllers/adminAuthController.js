@@ -71,6 +71,29 @@ export const loginAdmin = async (req, res) => {
   }
 };
 
+export const getAdminUsers = async (req, res) => {
+  try {
+    const users = await userRepository.findAll();
+
+    return res.status(200).json({
+      success: true,
+      data: users.map((user) => ({
+        id: user.id,
+        login: user.login,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }))
+    });
+  } catch (error) {
+    console.error('Get admin users error:', error?.message || error);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to load users'
+    });
+  }
+};
+
 export const changeAdminPassword = async (req, res) => {
   try {
     const currentAdmin = req.admin || {};

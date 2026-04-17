@@ -19,6 +19,16 @@ const getCollection = async () => (await getDB()).collection('users');
 export const userRepository = {
   normalizeLogin,
 
+  async findAll() {
+    const collection = await getCollection();
+    const users = await collection
+      .find({})
+      .sort({ role: 1, createdAt: 1 })
+      .toArray();
+
+    return users.map(mapUser);
+  },
+
   async findByLogin(login) {
     const normalizedLogin = normalizeLogin(login);
     if (!normalizedLogin) return null;
