@@ -38,6 +38,26 @@ export const userRepository = {
     return user ? mapUser(user) : null;
   },
 
+  async create(record) {
+    const normalizedLogin = normalizeLogin(record?.login);
+    const passwordHash = String(record?.passwordHash || '').trim();
+    const role = USER_ROLES.includes(record?.role) ? record.role : 'admin';
+    if (!normalizedLogin || !passwordHash) return null;
+
+    const collection = await getCollection();
+    const now = new Date().toISOString();
+    const payload = {
+      login: normalizedLogin,
+      passwordHash,
+      role,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    const { insertedId } = await collection.insertOne(payload);
+    return mapUser({ _id: insertedId, ...payload });
+  },
+
   async findById(id) {
     const normalizedId = String(id || '').trim();
     if (!ObjectId.isValid(normalizedId)) return null;

@@ -94,6 +94,74 @@ export const getAdminUsers = async (req, res) => {
   }
 };
 
+export const createAdminUser = async (req, res) => {
+  try {
+    const login = userRepository.normalizeLogin(req.body?.login);
+    const password = String(req.body?.password || '');
+    const confirmPassword = String(req.body?.confirmPassword || '');
+
+    if (!login || !password || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'login, password and confirmPassword are required'
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password and confirmation do not match'
+      });
+    }
+
+    const existingUser = await userRepository.findByLogin(login);
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: 'User with this login already exists'
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const createdUser = await userRepository.create({
+      login,
+      passwordHash,
+      role: 'admin'
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        id: createdUser.id,
+        login: createdUser.login,
+        role: createdUser.role,
+        createdAt: createdUser.createdAt,
+        updatedAt: createdUser.updatedAt
+      }
+    });
+  } catch (error) {
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: 'User with this login already exists'
+      });
+    }
+
+    console.error('Create admin user error:', error?.message || error);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to create admin user'
+    });
+  }
+};
+
 export const changeAdminPassword = async (req, res) => {
   try {
     const currentAdmin = req.admin || {};
