@@ -207,7 +207,7 @@ export const changeAdminPassword = async (req, res) => {
 
     const isOldPasswordValid = await bcrypt.compare(oldPassword, user.passwordHash);
     if (!isOldPasswordValid) {
-      return res.status(401).json({
+      return res.status(403).json({
         success: false,
         message: 'Old password is incorrect'
       });
