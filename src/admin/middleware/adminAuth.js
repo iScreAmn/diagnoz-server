@@ -34,3 +34,11 @@ export const requireAdminAuth = (req, res, next) => {
     });
   }
 };
+
+export const requireOwner = (req, res, next) => {
+  if (req.admin?.role === 'owner') return next();
+  return res.status(403).json({
+    success: false,
+    message: 'Forbidden'
+  });
+};
