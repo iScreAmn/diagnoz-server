@@ -1,7 +1,7 @@
 import { ObjectId } from 'mongodb';
 import { getDB } from '../../config/db.js';
 
-const USER_ROLES = ['admin', 'owner'];
+const USER_ROLES = ['admin', 'owner', 'developer'];
 
 const normalizeLogin = (value) => String(value || '').trim().toLowerCase();
 

@@ -35,10 +35,13 @@ export const requireAdminAuth = (req, res, next) => {
   }
 };
 
-export const requireOwner = (req, res, next) => {
-  if (req.admin?.role === 'owner') return next();
+/** owner + developer: полный доступ к панели (пользователи, конфликты и т.д.) */
+export const requireServiceAdmin = (req, res, next) => {
+  const role = req.admin?.role;
+  if (role === 'owner' || role === 'developer') return next();
   return res.status(403).json({
     success: false,
     message: 'Forbidden'
   });
 };
+

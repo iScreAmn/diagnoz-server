@@ -74,10 +74,15 @@ export const loginAdmin = async (req, res) => {
 export const getAdminUsers = async (req, res) => {
   try {
     const users = await userRepository.findAll();
+    const viewerRole = req.admin?.role;
+    let list = users;
+    if (viewerRole === 'owner') {
+      list = users.filter((u) => u.role !== 'developer');
+    }
 
     return res.status(200).json({
       success: true,
-      data: users.map((user) => ({
+      data: list.map((user) => ({
         id: user.id,
         login: user.login,
         role: user.role,
