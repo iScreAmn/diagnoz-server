@@ -5,7 +5,7 @@ import {
   getAllAppointments,
   updateAppointmentStatus
 } from '../controllers/adminAppointmentsController.js';
-import { loginAdmin } from '../controllers/adminAuthController.js';
+import { changeAdminPassword, loginAdmin } from '../controllers/adminAuthController.js';
 import { requireAdminAuth } from '../middleware/adminAuth.js';
 
 const router = express.Router();
@@ -13,6 +13,7 @@ const router = express.Router();
 router.post('/login', loginAdmin);
 
 router.use(requireAdminAuth);
+router.patch('/me/password', changeAdminPassword);
 
 router.get('/appointments', getAllAppointments);
 router.post('/appointments', createAdminAppointment);

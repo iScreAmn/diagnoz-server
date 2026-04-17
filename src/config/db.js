@@ -1,4 +1,5 @@
 import { MongoClient } from 'mongodb';
+import { seedInitialAdminUser } from '../admin/services/adminBootstrap.js';
 
 const mongoUri = String(process.env.MONGODB_URI || '').trim();
 
@@ -70,6 +71,9 @@ export const connectDB = async () => {
           }
         );
         console.log('[DB] appointments index ensured');
+
+        await seedInitialAdminUser(db);
+        console.log('[DB] users index/admin seed ensured');
 
         return db;
       } catch (error) {

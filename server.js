@@ -30,9 +30,9 @@ if (!process.env.ADMIN_EMAIL) {
   console.error('Emails will not be sent until ADMIN_EMAIL is configured');
 }
 
-if (!process.env.ADMIN_LOGIN || !process.env.ADMIN_PASSWORD_HASH) {
-  console.error('WARNING: ADMIN_LOGIN or ADMIN_PASSWORD_HASH not found in .env file!');
-  console.error('Admin login will be inaccessible until credentials are configured');
+if (!process.env.ADMIN_LOGIN || (!process.env.ADMIN_PASSWORD_HASH && !process.env.ADMIN_PASSWORD)) {
+  console.error('WARNING: ADMIN_LOGIN with ADMIN_PASSWORD_HASH (or ADMIN_PASSWORD) not found in .env file!');
+  console.error('Initial users seed may fail if users collection is empty');
 }
 
 if (!process.env.JWT_SECRET) {
