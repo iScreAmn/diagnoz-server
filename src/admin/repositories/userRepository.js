@@ -10,6 +10,7 @@ const mapUser = (doc) => ({
   login: doc.login,
   passwordHash: doc.passwordHash,
   role: USER_ROLES.includes(doc.role) ? doc.role : 'admin',
+  passwordUpdatedAt: doc.passwordUpdatedAt || doc.updatedAt || '',
   createdAt: doc.createdAt,
   updatedAt: doc.updatedAt
 });
@@ -50,6 +51,7 @@ export const userRepository = {
       login: normalizedLogin,
       passwordHash,
       role,
+      passwordUpdatedAt: now,
       createdAt: now,
       updatedAt: now
     };
@@ -77,7 +79,7 @@ export const userRepository = {
 
     const updated = await collection.findOneAndUpdate(
       { _id: new ObjectId(normalizedId) },
-      { $set: { passwordHash: nextHash, updatedAt: now } },
+      { $set: { passwordHash: nextHash, passwordUpdatedAt: now, updatedAt: now } },
       { returnDocument: 'after' }
     );
 

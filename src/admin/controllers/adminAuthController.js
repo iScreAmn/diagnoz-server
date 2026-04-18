@@ -21,7 +21,8 @@ const buildJwt = (user) => {
     {
       sub: user.id,
       login: user.login,
-      role: user.role
+      role: user.role,
+      pwdAt: user.passwordUpdatedAt || user.updatedAt || ''
     },
     secret,
     { expiresIn: JWT_EXPIRES_IN }

@@ -38,6 +38,7 @@ export const seedInitialAdminUser = async (db) => {
     login,
     passwordHash,
     role: 'owner',
+    passwordUpdatedAt: now,
     createdAt: now,
     updatedAt: now
   });
