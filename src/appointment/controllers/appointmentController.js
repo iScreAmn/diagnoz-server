@@ -1,7 +1,10 @@
 import { sendAppointmentAdminEmail } from '../services/emailService.js';
 import { appointmentRepository } from '../repositories/appointmentRepository.js';
 import { normalizeAppointmentDate } from '../services/bookingStore.js';
-import { validateClinicHours } from '../services/clinicHours.js';
+import {
+  validateDoctorWorkingDay,
+  validateDoctorWorkingHours
+} from '../services/doctorSchedule.js';
 
 const phoneRegex = /^\+?[0-9]{7,15}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -102,6 +105,14 @@ export const createAppointment = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Invalid appointmentDate. Expected a valid date-time string.'
+      });
+    }
+
+    const scheduleValidation = validateDoctorWorkingHours(doctor, appointmentDate);
+    if (!scheduleValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: scheduleValidation.message
       });
     }
 
@@ -208,6 +219,14 @@ export const submitAppointment = async (req, res) => {
     }
 
     const doctorName = String(doctor).trim();
+    const appointmentDateForSchedule = new Date(`${appointmentDate}T12:00:00+04:00`);
+    const scheduleDayValidation = validateDoctorWorkingDay(doctorName, appointmentDateForSchedule);
+    if (!scheduleDayValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: scheduleDayValidation.message
+      });
+    }
 
     const normalizedPhone = normalizePhone(phone);
     if (!phoneRegex.test(normalizedPhone)) {

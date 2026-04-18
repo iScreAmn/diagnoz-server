@@ -1,4 +1,5 @@
 import { appointmentRepository } from '../../appointment/repositories/appointmentRepository.js';
+import { validateDoctorWorkingHours } from '../../appointment/services/doctorSchedule.js';
 
 const phoneRegex = /^\+?[0-9]{7,15}$/;
 const normalizePhone = (phone) => {
@@ -29,6 +30,11 @@ export const createAdminAppointment = async (req, res) => {
     }
     if (!rawDate || Number.isNaN(appointmentDate.getTime())) {
       return res.status(400).json({ success: false, message: 'Invalid appointmentDate. Expected a valid date-time string.' });
+    }
+
+    const scheduleValidation = validateDoctorWorkingHours(doctor, appointmentDate);
+    if (!scheduleValidation.isValid) {
+      return res.status(400).json({ success: false, message: scheduleValidation.message });
     }
 
     let phone = '+0000000000';
