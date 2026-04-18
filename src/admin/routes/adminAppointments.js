@@ -5,7 +5,15 @@ import {
   getAllAppointments,
   updateAppointmentStatus
 } from '../controllers/adminAppointmentsController.js';
-import { changeAdminPassword, createAdminUser, getAdminUsers, loginAdmin } from '../controllers/adminAuthController.js';
+import {
+  changeAdminPassword,
+  createAdminUser,
+  deleteAdminUser,
+  getAdminUsers,
+  loginAdmin,
+  updateAdminUserLogin,
+  updateAdminUserPassword
+} from '../controllers/adminAuthController.js';
 import { requireAdminAuth, requireServiceAdmin } from '../middleware/adminAuth.js';
 
 const router = express.Router();
@@ -16,6 +24,9 @@ router.use(requireAdminAuth);
 router.patch('/me/password', changeAdminPassword);
 router.get('/users', requireServiceAdmin, getAdminUsers);
 router.post('/users', requireServiceAdmin, createAdminUser);
+router.patch('/users/:id/login', requireServiceAdmin, updateAdminUserLogin);
+router.patch('/users/:id/password', requireServiceAdmin, updateAdminUserPassword);
+router.delete('/users/:id', requireServiceAdmin, deleteAdminUser);
 
 router.get('/appointments', getAllAppointments);
 router.post('/appointments', createAdminAppointment);

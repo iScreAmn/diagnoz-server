@@ -3,6 +3,13 @@ import jwt from 'jsonwebtoken';
 import { userRepository } from '../repositories/userRepository.js';
 
 const JWT_EXPIRES_IN = '12h';
+const SERVICE_ADMIN_ROLES = ['owner', 'developer'];
+
+const canManageTargetRole = (actorRole, targetRole) => {
+  if (actorRole === 'developer') return true;
+  if (actorRole === 'owner') return targetRole === 'admin';
+  return false;
+};
 
 const buildJwt = (user) => {
   const secret = String(process.env.JWT_SECRET || '').trim();
@@ -164,6 +171,125 @@ export const createAdminUser = async (req, res) => {
       success: false,
       message: 'Unable to create admin user'
     });
+  }
+};
+
+export const updateAdminUserLogin = async (req, res) => {
+  try {
+    const actorRole = String(req.admin?.role || '');
+    if (!SERVICE_ADMIN_ROLES.includes(actorRole)) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    const targetUserId = String(req.params?.id || '').trim();
+    const targetUser = await userRepository.findById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    if (!canManageTargetRole(actorRole, targetUser.role)) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    const login = userRepository.normalizeLogin(req.body?.login);
+    if (!login) {
+      return res.status(400).json({ success: false, message: 'login is required' });
+    }
+
+    const duplicate = await userRepository.findByLogin(login);
+    if (duplicate && String(duplicate.id) !== String(targetUser.id)) {
+      return res.status(409).json({ success: false, message: 'User with this login already exists' });
+    }
+
+    const updated = await userRepository.updateLogin(targetUser.id, login);
+    if (!updated) {
+      return res.status(500).json({ success: false, message: 'Unable to update login' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: updated.id,
+        login: updated.login,
+        role: updated.role,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt
+      }
+    });
+  } catch (error) {
+    if (error?.code === 11000) {
+      return res.status(409).json({ success: false, message: 'User with this login already exists' });
+    }
+    console.error('Update admin login error:', error?.message || error);
+    return res.status(500).json({ success: false, message: 'Unable to update login' });
+  }
+};
+
+export const updateAdminUserPassword = async (req, res) => {
+  try {
+    const actorRole = String(req.admin?.role || '');
+    if (!SERVICE_ADMIN_ROLES.includes(actorRole)) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    const targetUserId = String(req.params?.id || '').trim();
+    const targetUser = await userRepository.findById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    if (!canManageTargetRole(actorRole, targetUser.role)) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    const password = String(req.body?.password || '');
+    const confirmPassword = String(req.body?.confirmPassword || '');
+    if (!password || !confirmPassword) {
+      return res.status(400).json({ success: false, message: 'password and confirmPassword are required' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+    }
+    if (password !== confirmPassword) {
+      return res.status(400).json({ success: false, message: 'Password and confirmation do not match' });
+    }
+
+    const nextHash = await bcrypt.hash(password, 10);
+    const updated = await userRepository.updatePasswordHash(targetUser.id, nextHash);
+    if (!updated) {
+      return res.status(500).json({ success: false, message: 'Unable to update password' });
+    }
+
+    return res.status(200).json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Update admin password error:', error?.message || error);
+    return res.status(500).json({ success: false, message: 'Unable to update password' });
+  }
+};
+
+export const deleteAdminUser = async (req, res) => {
+  try {
+    const actorRole = String(req.admin?.role || '');
+    if (!SERVICE_ADMIN_ROLES.includes(actorRole)) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    const targetUserId = String(req.params?.id || '').trim();
+    const targetUser = await userRepository.findById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    if (!canManageTargetRole(actorRole, targetUser.role)) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    const deleted = await userRepository.deleteById(targetUser.id);
+    if (!deleted) {
+      return res.status(500).json({ success: false, message: 'Unable to delete user' });
+    }
+
+    return res.status(200).json({ success: true, message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Delete admin user error:', error?.message || error);
+    return res.status(500).json({ success: false, message: 'Unable to delete user' });
   }
 };
 

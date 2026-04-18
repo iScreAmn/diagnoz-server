@@ -82,5 +82,31 @@ export const userRepository = {
     );
 
     return updated ? mapUser(updated) : null;
+  },
+
+  async updateLogin(id, login) {
+    const normalizedId = String(id || '').trim();
+    const nextLogin = normalizeLogin(login);
+    if (!ObjectId.isValid(normalizedId) || !nextLogin) return null;
+
+    const collection = await getCollection();
+    const now = new Date().toISOString();
+
+    const updated = await collection.findOneAndUpdate(
+      { _id: new ObjectId(normalizedId) },
+      { $set: { login: nextLogin, updatedAt: now } },
+      { returnDocument: 'after' }
+    );
+
+    return updated ? mapUser(updated) : null;
+  },
+
+  async deleteById(id) {
+    const normalizedId = String(id || '').trim();
+    if (!ObjectId.isValid(normalizedId)) return false;
+
+    const collection = await getCollection();
+    const result = await collection.deleteOne({ _id: new ObjectId(normalizedId) });
+    return result.deletedCount > 0;
   }
 };
