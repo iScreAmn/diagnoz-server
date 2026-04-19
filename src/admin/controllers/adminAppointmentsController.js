@@ -105,6 +105,7 @@ export const createAdminAppointment = async (req, res) => {
 
 export const getAllAppointments = async (req, res) => {
   try {
+    await appointmentRepository.completePastAppointments();
     const appointments = await appointmentRepository.findAll();
     return res.status(200).json({
       success: true,

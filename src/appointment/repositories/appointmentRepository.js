@@ -2,6 +2,33 @@ import { ObjectId } from 'mongodb';
 import { getDB } from '../../config/db.js';
 
 const STATUSES = ['pending', 'confirmed', 'cancelled', 'completed'];
+const TBILISI_TIMEZONE = 'Asia/Tbilisi';
+
+const getTbilisiDateKey = (value) => {
+  if (!value) return '';
+
+  if (typeof value === 'string') {
+    const localMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+    if (localMatch) {
+      const [, year, month, day] = localMatch;
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TBILISI_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(date);
+  const get = (type) => parts.find((p) => p.type === type)?.value ?? '';
+  return `${get('year')}-${get('month')}-${get('day')}`;
+};
+
+const getTodayTbilisiKey = () => getTbilisiDateKey(new Date());
 
 const mapAppointment = (doc) => ({
   id: String(doc._id),
@@ -45,6 +72,40 @@ export const appointmentRepository = {
       .toArray();
 
     return docs.map(mapAppointment);
+  },
+
+  async completePastAppointments() {
+    const collection = await getCollection();
+    const todayKey = getTodayTbilisiKey();
+
+    const activeDocs = await collection
+      .find(
+        {
+          $or: [
+            { status: { $in: ['pending', 'confirmed'] } },
+            { status: { $exists: false } }
+          ]
+        },
+        { projection: { _id: 1, appointmentDate: 1 } }
+      )
+      .toArray();
+
+    const idsToComplete = activeDocs
+      .filter((doc) => {
+        const appointmentDayKey = getTbilisiDateKey(doc.appointmentDate);
+        if (!appointmentDayKey) return false;
+        return appointmentDayKey < todayKey;
+      })
+      .map((doc) => doc._id);
+
+    if (!idsToComplete.length) return 0;
+
+    const { modifiedCount } = await collection.updateMany(
+      { _id: { $in: idsToComplete } },
+      { $set: { status: 'completed' } }
+    );
+
+    return modifiedCount;
   },
 
   async findUnavailableDates(doctor, from, to) {
