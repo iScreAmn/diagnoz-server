@@ -4,7 +4,7 @@
 export const getEmailConfig = () => {
   const port = parseInt(process.env.SMTP_PORT, 10) || 587;
   return {
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    host: process.env.SMTP_HOST || 'myitcloudsrvv1.myit-cloud.ge',
     port,
     secure: port === 465,
     auth: {
@@ -26,6 +26,6 @@ export const getAdminEmail = () => {
 };
 
 export const getEmailSender = () => ({
-  name: 'Diagnoz Clinic',
-  email: process.env.SMTP_USER || process.env.ADMIN_EMAIL
+  name: process.env.SMTP_FROM_NAME || 'Diagnoz Clinic',
+  email: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || process.env.ADMIN_EMAIL
 });
