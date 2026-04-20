@@ -11,9 +11,9 @@ import { createAppointment } from './src/appointment/controllers/appointmentCont
 import { createAdminAppointment } from './src/admin/controllers/adminAppointmentsController.js';
 import { requireAdminAuth } from './src/admin/middleware/adminAuth.js';
 import { connectDB } from './src/config/db.js';
-import { verifyEmailConfig as verifyCallbackEmail } from './src/callback/services/emailService.js';
-import { verifyEmailConfig as verifyCalculatorEmail } from './src/calculator/services/emailService.js';
-import { verifyEmailConfig as verifyAppointmentEmail } from './src/appointment/services/emailService.js';
+import { verifyEmailConfigDetailed as verifyCallbackEmailDetailed } from './src/callback/services/emailService.js';
+import { verifyEmailConfigDetailed as verifyCalculatorEmailDetailed } from './src/calculator/services/emailService.js';
+import { verifyEmailConfigDetailed as verifyAppointmentEmailDetailed } from './src/appointment/services/emailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -155,18 +155,33 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/api/health/email', async (req, res) => {
-  const [callbackOk, calculatorOk, appointmentOk] = await Promise.all([
-    verifyCallbackEmail(),
-    verifyCalculatorEmail(),
-    verifyAppointmentEmail()
+  const [callback, calculator, appointment] = await Promise.all([
+    verifyCallbackEmailDetailed(),
+    verifyCalculatorEmailDetailed(),
+    verifyAppointmentEmailDetailed()
   ]);
-  res.json({
-    success: callbackOk && calculatorOk && appointmentOk,
-    callback: callbackOk,
-    calculator: calculatorOk,
-    appointment: appointmentOk,
+  const verbose = String(req.query.verbose || '').trim() === '1';
+  const payload = {
+    success: callback.ok && calculator.ok && appointment.ok,
+    callback: callback.ok,
+    calculator: calculator.ok,
+    appointment: appointment.ok,
     timestamp: new Date().toISOString()
-  });
+  };
+  if (verbose) {
+    payload.smtp = {
+      host: smtpHostForLog,
+      port: smtpPortForLog,
+      secure: smtpSecureForLog,
+      user: maskedSmtpUser
+    };
+    payload.errors = {
+      callback: callback.error || null,
+      calculator: calculator.error || null,
+      appointment: appointment.error || null
+    };
+  }
+  res.json(payload);
 });
 
 app.use('/api', rateLimit);

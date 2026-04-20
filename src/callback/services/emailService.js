@@ -7,6 +7,13 @@ const createTransporter = () => {
   return createTransport(config);
 };
 
+const toVerificationError = (error) => ({
+  message: error?.message || 'Unknown SMTP error',
+  code: error?.code || null,
+  responseCode: error?.responseCode || null,
+  command: error?.command || null
+});
+
 const generateEmailHTML = (data) => `
   <!DOCTYPE html>
   <html lang="ru">
@@ -84,13 +91,18 @@ export const sendCallbackAdminEmail = async (data) => {
   }
 };
 
-export const verifyEmailConfig = async () => {
+export const verifyEmailConfigDetailed = async () => {
   try {
     const transporter = createTransporter();
     await transporter.verify();
-    return true;
+    return { ok: true };
   } catch (error) {
     console.error('Email configuration error:', error.message);
-    return false;
+    return { ok: false, error: toVerificationError(error) };
   }
+};
+
+export const verifyEmailConfig = async () => {
+  const result = await verifyEmailConfigDetailed();
+  return result.ok;
 };

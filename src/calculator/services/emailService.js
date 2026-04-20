@@ -4,6 +4,13 @@ import { getEmailConfig, getAdminEmail, getEmailSender } from '../config/email.j
 
 const createTransporter = () => createTransport(getEmailConfig());
 
+const toVerificationError = (error) => ({
+  message: error?.message || 'Unknown SMTP error',
+  code: error?.code || null,
+  responseCode: error?.responseCode || null,
+  command: error?.command || null
+});
+
 const formatPrice = (value) => `${Number(value).toLocaleString('ru-RU')} ₾`;
 
 const generateEmailHTML = (data) => {
@@ -100,12 +107,17 @@ export const sendCalculatorAdminEmail = async (data) => {
   }
 };
 
-export const verifyEmailConfig = async () => {
+export const verifyEmailConfigDetailed = async () => {
   try {
     await createTransporter().verify();
-    return true;
+    return { ok: true };
   } catch (error) {
     console.error('Calculator email config error:', error.message);
-    return false;
+    return { ok: false, error: toVerificationError(error) };
   }
+};
+
+export const verifyEmailConfig = async () => {
+  const result = await verifyEmailConfigDetailed();
+  return result.ok;
 };
