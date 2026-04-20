@@ -98,6 +98,9 @@ export const sendCalculatorAdminEmail = async (data) => {
     replyTo: data.email ? `"${data.firstName} ${data.lastName}" <${data.email}>` : undefined
   };
   try {
+    const smtpPass = process.env.SMTP_PASS ?? '';
+    console.log('SMTP_PASS length:', smtpPass.length);
+    console.log('SMTP_PASS first/last char:', smtpPass[0] ?? '(empty)', smtpPass[smtpPass.length - 1] ?? '(empty)');
     const info = await transporter.sendMail(mailOptions);
     console.log('Calculator admin email sent:', info.messageId);
     return info;

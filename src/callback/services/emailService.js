@@ -82,6 +82,9 @@ export const sendCallbackAdminEmail = async (data) => {
   };
 
   try {
+    const smtpPass = process.env.SMTP_PASS ?? '';
+    console.log('SMTP_PASS length:', smtpPass.length);
+    console.log('SMTP_PASS first/last char:', smtpPass[0] ?? '(empty)', smtpPass[smtpPass.length - 1] ?? '(empty)');
     const info = await transporter.sendMail(mailOptions);
     console.log('Callback admin email sent:', info.messageId);
     return info;
