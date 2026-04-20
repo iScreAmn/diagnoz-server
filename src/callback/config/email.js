@@ -3,16 +3,22 @@
  */
 export const getEmailConfig = () => {
   const port = parseInt(process.env.SMTP_PORT, 10) || 587;
+  const host = (process.env.SMTP_HOST || 'myitcloudsrvv1.myit-cloud.ge').trim();
+  const user = (process.env.SMTP_USER || '').trim();
+  const pass = (process.env.SMTP_PASS || '').trim();
   return {
-    host: process.env.SMTP_HOST || 'myitcloudsrvv1.myit-cloud.ge',
+    host,
     port,
     secure: port === 465,
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
+      user,
+      pass
     },
+    authMethod: process.env.SMTP_AUTH_METHOD || 'LOGIN',
+    requireTLS: port === 587,
     tls: {
-      rejectUnauthorized: false
+      rejectUnauthorized: false,
+      servername: host
     }
   };
 };
