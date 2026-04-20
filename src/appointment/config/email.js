@@ -6,6 +6,8 @@ export const getEmailConfig = () => {
   const host = (process.env.SMTP_HOST || 'myitcloudsrvv1.myit-cloud.ge').trim();
   const user = (process.env.SMTP_USER || '').trim();
   const pass = (process.env.SMTP_PASS || '').trim();
+  const authMethod = (process.env.SMTP_AUTH_METHOD || '').trim() || undefined;
+  const requireTLS = (process.env.SMTP_REQUIRE_TLS || '').trim().toLowerCase() === 'true';
   return {
     host,
     port,
@@ -14,8 +16,8 @@ export const getEmailConfig = () => {
       user,
       pass
     },
-    authMethod: process.env.SMTP_AUTH_METHOD || 'LOGIN',
-    requireTLS: port === 587,
+    authMethod,
+    requireTLS,
     tls: { rejectUnauthorized: false, servername: host }
   };
 };
