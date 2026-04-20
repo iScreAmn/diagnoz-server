@@ -14,7 +14,7 @@ export const getEmailConfig = () => {
   const host = (process.env.SMTP_HOST || process.env.SMTP_SERVER || 'notify.diagnoz.ge').trim();
   const user = (process.env.SMTP_USER || '').trim();
   const pass = (process.env.SMTP_PASS || '').trim();
-  const authMethod = (process.env.SMTP_AUTH_METHOD || '').trim() || undefined;
+  const authMethod = (process.env.SMTP_AUTH_METHOD || 'LOGIN').trim().toUpperCase();
   const requireTLS = (process.env.SMTP_REQUIRE_TLS || '').trim().toLowerCase() === 'true';
   const secure = parseBoolean(process.env.SMTP_SECURE) ?? (port === 465);
   return {
