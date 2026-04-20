@@ -11,7 +11,7 @@ const parseBoolean = (value) => {
 
 export const getEmailConfig = () => {
   const port = parseInt(process.env.SMTP_PORT, 10) || 587;
-  const host = (process.env.SMTP_HOST || process.env.SMTP_SERVER || 'notify.diagnoz.ge').trim();
+  const host = (process.env.SMTP_HOST || process.env.SMTP_SERVER || 'myitcloudsrvv1.myit-cloud.ge').trim();
   const user = (process.env.SMTP_USER || '').trim();
   const pass = (process.env.SMTP_PASS || '').trim();
   const authMethod = (process.env.SMTP_AUTH_METHOD || 'LOGIN').trim().toUpperCase();

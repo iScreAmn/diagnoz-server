@@ -30,7 +30,7 @@ if (!process.env.ADMIN_EMAIL) {
   console.error('Emails will not be sent until ADMIN_EMAIL is configured');
 }
 
-const smtpHostForLog = (process.env.SMTP_HOST || process.env.SMTP_SERVER || 'notify.diagnoz.ge').trim();
+const smtpHostForLog = (process.env.SMTP_HOST || process.env.SMTP_SERVER || 'myitcloudsrvv1.myit-cloud.ge').trim();
 const smtpPortForLog = parseInt(process.env.SMTP_PORT, 10) || 587;
 const smtpSecureForLog = String(process.env.SMTP_SECURE || '').trim()
   ? ['1', 'true', 'yes', 'on'].includes(String(process.env.SMTP_SECURE).trim().toLowerCase())
