@@ -30,6 +30,17 @@ if (!process.env.ADMIN_EMAIL) {
   console.error('Emails will not be sent until ADMIN_EMAIL is configured');
 }
 
+const smtpHostForLog = (process.env.SMTP_HOST || process.env.SMTP_SERVER || 'notify.diagnoz.ge').trim();
+const smtpPortForLog = parseInt(process.env.SMTP_PORT, 10) || 587;
+const smtpSecureForLog = String(process.env.SMTP_SECURE || '').trim()
+  ? ['1', 'true', 'yes', 'on'].includes(String(process.env.SMTP_SECURE).trim().toLowerCase())
+  : smtpPortForLog === 465;
+const smtpUserForLog = (process.env.SMTP_USER || '').trim();
+const maskedSmtpUser = smtpUserForLog
+  ? `${smtpUserForLog.slice(0, 3)}***${smtpUserForLog.includes('@') ? smtpUserForLog.slice(smtpUserForLog.indexOf('@')) : ''}`
+  : 'not-set';
+console.log(`[SMTP] host=${smtpHostForLog} port=${smtpPortForLog} secure=${smtpSecureForLog} user=${maskedSmtpUser}`);
+
 if (!process.env.ADMIN_LOGIN || (!process.env.ADMIN_PASSWORD_HASH && !process.env.ADMIN_PASSWORD)) {
   console.error('WARNING: ADMIN_LOGIN with ADMIN_PASSWORD_HASH (or ADMIN_PASSWORD) not found in .env file!');
   console.error('Initial users seed may fail if users collection is empty');

@@ -1,14 +1,23 @@
+const parseBoolean = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) return undefined;
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return undefined;
+};
+
 export const getEmailConfig = () => {
   const port = parseInt(process.env.SMTP_PORT, 10) || 587;
-  const host = (process.env.SMTP_HOST || 'myitcloudsrvv1.myit-cloud.ge').trim();
+  const host = (process.env.SMTP_HOST || process.env.SMTP_SERVER || 'notify.diagnoz.ge').trim();
   const user = (process.env.SMTP_USER || '').trim();
   const pass = (process.env.SMTP_PASS || '').trim();
   const authMethod = (process.env.SMTP_AUTH_METHOD || '').trim() || undefined;
   const requireTLS = (process.env.SMTP_REQUIRE_TLS || '').trim().toLowerCase() === 'true';
+  const secure = parseBoolean(process.env.SMTP_SECURE) ?? (port === 465);
   return {
     host,
     port,
-    secure: port === 465,
+    secure,
     auth: {
       user,
       pass
