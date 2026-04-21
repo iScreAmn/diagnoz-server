@@ -110,7 +110,7 @@ const getClientIp = (req) => {
 
 const rateLimit = (req, res, next) => {
   const requestPath = req.originalUrl || req.url || req.path || '';
-  if (requestPath.startsWith('/api/admin') || req.path.startsWith('/admin')) {
+  if (requestPath.startsWith('/api/admin') || requestPath.startsWith('/api/analytics') || req.path.startsWith('/admin')) {
     return next();
   }
   const ip = getClientIp(req);
