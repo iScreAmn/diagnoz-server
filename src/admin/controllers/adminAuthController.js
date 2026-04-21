@@ -4,6 +4,7 @@ import { userRepository } from '../repositories/userRepository.js';
 
 const JWT_EXPIRES_IN = '12h';
 const SERVICE_ADMIN_ROLES = ['owner', 'developer'];
+const ASSIGNABLE_ROLES = ['admin', 'owner', 'developer'];
 
 const canManageTargetRole = (actorRole, targetRole) => {
   if (actorRole === 'developer') return true;
@@ -222,6 +223,48 @@ export const updateAdminUserLogin = async (req, res) => {
     }
     console.error('Update admin login error:', error?.message || error);
     return res.status(500).json({ success: false, message: 'Unable to update login' });
+  }
+};
+
+export const updateAdminUserRole = async (req, res) => {
+  try {
+    const actorRole = String(req.admin?.role || '');
+    if (actorRole !== 'developer') {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    const targetUserId = String(req.params?.id || '').trim();
+    const targetUser = await userRepository.findById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const nextRole = String(req.body?.role || '').trim().toLowerCase();
+    if (!ASSIGNABLE_ROLES.includes(nextRole)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role. Allowed values: ${ASSIGNABLE_ROLES.join(', ')}`
+      });
+    }
+
+    const updated = await userRepository.updateRole(targetUser.id, nextRole);
+    if (!updated) {
+      return res.status(500).json({ success: false, message: 'Unable to update role' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: updated.id,
+        login: updated.login,
+        role: updated.role,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error('Update admin role error:', error?.message || error);
+    return res.status(500).json({ success: false, message: 'Unable to update role' });
   }
 };
 

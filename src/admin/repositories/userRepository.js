@@ -103,6 +103,23 @@ export const userRepository = {
     return updated ? mapUser(updated) : null;
   },
 
+  async updateRole(id, role) {
+    const normalizedId = String(id || '').trim();
+    const nextRole = USER_ROLES.includes(role) ? role : '';
+    if (!ObjectId.isValid(normalizedId) || !nextRole) return null;
+
+    const collection = await getCollection();
+    const now = new Date().toISOString();
+
+    const updated = await collection.findOneAndUpdate(
+      { _id: new ObjectId(normalizedId) },
+      { $set: { role: nextRole, updatedAt: now } },
+      { returnDocument: 'after' }
+    );
+
+    return updated ? mapUser(updated) : null;
+  },
+
   async deleteById(id) {
     const normalizedId = String(id || '').trim();
     if (!ObjectId.isValid(normalizedId)) return false;

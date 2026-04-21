@@ -12,6 +12,7 @@ import {
   getAdminUsers,
   loginAdmin,
   updateAdminUserLogin,
+  updateAdminUserRole,
   updateAdminUserPassword
 } from '../controllers/adminAuthController.js';
 import { requireAdminAuth, requireServiceAdmin } from '../middleware/adminAuth.js';
@@ -25,6 +26,7 @@ router.patch('/me/password', changeAdminPassword);
 router.get('/users', requireServiceAdmin, getAdminUsers);
 router.post('/users', requireServiceAdmin, createAdminUser);
 router.patch('/users/:id/login', requireServiceAdmin, updateAdminUserLogin);
+router.patch('/users/:id/role', requireServiceAdmin, updateAdminUserRole);
 router.patch('/users/:id/password', requireServiceAdmin, updateAdminUserPassword);
 router.delete('/users/:id', requireServiceAdmin, deleteAdminUser);
 
