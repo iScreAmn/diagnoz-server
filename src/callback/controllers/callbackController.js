@@ -50,8 +50,6 @@ export const submitCallback = async (req, res) => {
 
     await sendCallbackAdminEmail(emailData);
 
-    console.log('Callback submission:', { name: emailData.name, phone: emailData.phone, timestamp: emailData.submitted_at });
-
     return res.status(200).json({
       success: true,
       message: 'Заявка успешно отправлена!',

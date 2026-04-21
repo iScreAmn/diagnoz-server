@@ -82,9 +82,7 @@ export const sendCallbackAdminEmail = async (data) => {
   };
 
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Callback admin email sent:', info.messageId);
-    return info;
+    return await transporter.sendMail(mailOptions);
   } catch (error) {
     console.error('Callback admin email failed:', error.message, error?.responseCode || '', error?.response || '');
     throw error;
