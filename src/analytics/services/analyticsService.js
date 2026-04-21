@@ -129,3 +129,38 @@ const formatDuration = (durationMs) => {
   const remainingMinutes = minutes % 60;
   return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
 };
+
+export const deleteAllAnalytics = async () => {
+  const count = await analyticsRepo.deleteAllEvents();
+  return { success: true, deletedCount: count };
+};
+
+export const deleteAnalyticsByPeriod = async (days) => {
+  if (!days || days < 1) {
+    throw new Error('Invalid days parameter');
+  }
+  
+  const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const count = await analyticsRepo.deleteEventsOlderThan(cutoffDate);
+  return { success: true, deletedCount: count, olderThan: days };
+};
+
+export const deleteSession = async (sessionId) => {
+  if (!sessionId) {
+    throw new Error('sessionId is required');
+  }
+  
+  const count = await analyticsRepo.deleteSessionEvents(sessionId);
+  if (count === 0) {
+    throw new Error('Session not found');
+  }
+  return { success: true, deletedCount: count };
+};
+
+export const getAnalyticsInfo = async () => {
+  const totalEvents = await analyticsRepo.getTotalEventsCount();
+  return {
+    totalEvents,
+    estimatedSize: `~${Math.round((totalEvents * 1.5) / 1024)}KB`,
+  };
+};
