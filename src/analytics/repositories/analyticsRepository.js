@@ -171,6 +171,113 @@ export const ensureIndexes = async () => {
   await collection.createIndex({ type: 1, timestamp: -1 });
   await collection.createIndex({ sessionId: 1, timestamp: 1 });
   await collection.createIndex({ userId: 1 }, { sparse: true });
+  await collection.createIndex({ ip: 1 }, { sparse: true });
 
   console.log('[ANALYTICS] Indexes ensured');
+};
+
+export const aggregateSessions = async (startDate, limit = 50) => {
+  const db = await getDB();
+  const collection = db.collection(COLLECTION_NAME);
+
+  return collection
+    .aggregate([
+      {
+        $match: {
+          timestamp: { $gte: startDate },
+        },
+      },
+      {
+        $sort: { timestamp: 1 },
+      },
+      {
+        $group: {
+          _id: '$sessionId',
+          firstEvent: { $first: '$$ROOT' },
+          lastEvent: { $last: '$$ROOT' },
+          start: { $min: '$timestamp' },
+          end: { $max: '$timestamp' },
+          eventsCount: { $sum: 1 },
+          pages: { $addToSet: '$url' },
+        },
+      },
+      {
+        $project: {
+          sessionId: '$_id',
+          start: 1,
+          end: 1,
+          duration: { $subtract: ['$end', '$start'] },
+          eventsCount: 1,
+          pagesCount: { $size: '$pages' },
+          ip: '$firstEvent.ip',
+          referrer: '$firstEvent.referrer',
+          device: '$firstEvent.device',
+          locale: '$firstEvent.locale',
+          timezone: '$firstEvent.timezone',
+          _id: 0,
+        },
+      },
+      { $sort: { start: -1 } },
+      { $limit: limit },
+    ])
+    .toArray();
+};
+
+export const getSessionEvents = async (sessionId) => {
+  const db = await getDB();
+  const collection = db.collection(COLLECTION_NAME);
+
+  return collection
+    .find({ sessionId })
+    .sort({ timestamp: 1 })
+    .toArray();
+};
+
+export const getSessionSummary = async (sessionId) => {
+  const db = await getDB();
+  const collection = db.collection(COLLECTION_NAME);
+
+  const result = await collection
+    .aggregate([
+      {
+        $match: { sessionId },
+      },
+      {
+        $sort: { timestamp: 1 },
+      },
+      {
+        $group: {
+          _id: '$sessionId',
+          firstEvent: { $first: '$$ROOT' },
+          lastEvent: { $last: '$$ROOT' },
+          start: { $min: '$timestamp' },
+          end: { $max: '$timestamp' },
+          eventsCount: { $sum: 1 },
+          pages: { $addToSet: '$url' },
+          eventTypes: { $push: '$type' },
+        },
+      },
+      {
+        $project: {
+          sessionId: '$_id',
+          start: 1,
+          end: 1,
+          duration: { $subtract: ['$end', '$start'] },
+          eventsCount: 1,
+          pagesCount: { $size: '$pages' },
+          pages: 1,
+          eventTypes: 1,
+          ip: '$firstEvent.ip',
+          referrer: '$firstEvent.referrer',
+          device: '$firstEvent.device',
+          locale: '$firstEvent.locale',
+          timezone: '$firstEvent.timezone',
+          userAgent: '$firstEvent.userAgent',
+          _id: 0,
+        },
+      },
+    ])
+    .toArray();
+
+  return result[0] || null;
 };

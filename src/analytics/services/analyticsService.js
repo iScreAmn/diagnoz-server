@@ -81,3 +81,51 @@ const formatHourlyActivity = (rawActivity) => {
     percentage: (item.count / maxCount) * 100,
   }));
 };
+
+export const getSessions = async (range = '7d', limit = 50) => {
+  const rangeMs = RANGE_MAP[range] || RANGE_MAP['7d'];
+  const startDate = new Date(Date.now() - rangeMs);
+
+  const sessions = await analyticsRepo.aggregateSessions(startDate, limit);
+
+  return sessions.map((session) => ({
+    ...session,
+    durationFormatted: formatDuration(session.duration),
+  }));
+};
+
+export const getSessionDetail = async (sessionId) => {
+  const [summary, events] = await Promise.all([
+    analyticsRepo.getSessionSummary(sessionId),
+    analyticsRepo.getSessionEvents(sessionId),
+  ]);
+
+  if (!summary) return null;
+
+  return {
+    ...summary,
+    durationFormatted: formatDuration(summary.duration),
+    events: events.map((event) => ({
+      ...event,
+      timestamp: event.timestamp,
+    })),
+  };
+};
+
+const formatDuration = (durationMs) => {
+  if (durationMs < 1000) return '<1s';
+  
+  const seconds = Math.floor(durationMs / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  
+  if (minutes < 60) {
+    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+  }
+  
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+};
