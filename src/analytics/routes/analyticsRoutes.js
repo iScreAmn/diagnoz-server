@@ -1,13 +1,21 @@
 import express from 'express';
-import { trackEvents, getStats, getSessions, getSessionDetail } from '../controllers/analyticsController.js';
+import { trackEvents, getStats, getSessions, getSessionDetail, deleteAllAnalytics, deleteAnalyticsByPeriod, deleteSession, getAnalyticsInfo } from '../controllers/analyticsController.js';
 import { requireAdminAuth, requireDeveloperRole } from '../../admin/middleware/adminAuth.js';
 
 const router = express.Router();
 
 router.post('/', trackEvents);
 
-router.get('/stats', requireAdminAuth, requireDeveloperRole, getStats);
-router.get('/sessions', requireAdminAuth, requireDeveloperRole, getSessions);
-router.get('/sessions/:sessionId', requireAdminAuth, requireDeveloperRole, getSessionDetail);
+router.use(requireAdminAuth);
+router.use(requireDeveloperRole);
+
+router.get('/info', getAnalyticsInfo);
+router.get('/stats', getStats);
+router.get('/sessions', getSessions);
+router.get('/sessions/:sessionId', getSessionDetail);
+
+router.delete('/data/all', deleteAllAnalytics);
+router.delete('/data/period', deleteAnalyticsByPeriod);
+router.delete('/sessions/:sessionId', deleteSession);
 
 export default router;

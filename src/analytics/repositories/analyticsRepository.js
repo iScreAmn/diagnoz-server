@@ -281,3 +281,46 @@ export const getSessionSummary = async (sessionId) => {
 
   return result[0] || null;
 };
+
+export const deleteAllEvents = async () => {
+  const db = await getDB();
+  const collection = db.collection(COLLECTION_NAME);
+
+  const result = await collection.deleteMany({});
+  return result.deletedCount;
+};
+
+export const deleteEventsByDateRange = async (startDate, endDate) => {
+  const db = await getDB();
+  const collection = db.collection(COLLECTION_NAME);
+
+  const result = await collection.deleteMany({
+    timestamp: { $gte: startDate, $lte: endDate },
+  });
+  return result.deletedCount;
+};
+
+export const deleteEventsOlderThan = async (date) => {
+  const db = await getDB();
+  const collection = db.collection(COLLECTION_NAME);
+
+  const result = await collection.deleteMany({
+    timestamp: { $lt: date },
+  });
+  return result.deletedCount;
+};
+
+export const deleteSessionEvents = async (sessionId) => {
+  const db = await getDB();
+  const collection = db.collection(COLLECTION_NAME);
+
+  const result = await collection.deleteMany({ sessionId });
+  return result.deletedCount;
+};
+
+export const getTotalEventsCount = async () => {
+  const db = await getDB();
+  const collection = db.collection(COLLECTION_NAME);
+
+  return collection.countDocuments({});
+};

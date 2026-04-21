@@ -143,3 +143,104 @@ export const getSessionDetail = async (req, res) => {
     });
   }
 };
+
+export const deleteAllAnalytics = async (req, res) => {
+  try {
+    const result = await analyticsService.deleteAllAnalytics();
+    
+    res.json({
+      success: true,
+      message: `Удалено ${result.deletedCount} событий`,
+      deletedCount: result.deletedCount,
+    });
+  } catch (error) {
+    console.error('[ANALYTICS] Delete all error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete analytics',
+      error: error.message,
+    });
+  }
+};
+
+export const deleteAnalyticsByPeriod = async (req, res) => {
+  try {
+    const { days } = req.body;
+
+    if (!days || typeof days !== 'number' || days < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'days must be a positive number',
+      });
+    }
+
+    const result = await analyticsService.deleteAnalyticsByPeriod(days);
+
+    res.json({
+      success: true,
+      message: `Удалены данные старше ${days} дней (${result.deletedCount} событий)`,
+      deletedCount: result.deletedCount,
+    });
+  } catch (error) {
+    console.error('[ANALYTICS] Delete by period error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete analytics by period',
+      error: error.message,
+    });
+  }
+};
+
+export const deleteSession = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'sessionId is required',
+      });
+    }
+
+    const result = await analyticsService.deleteSession(sessionId);
+
+    res.json({
+      success: true,
+      message: `Сессия удалена (${result.deletedCount} событий)`,
+      deletedCount: result.deletedCount,
+    });
+  } catch (error) {
+    console.error('[ANALYTICS] Delete session error:', error);
+    
+    if (error.message === 'Session not found') {
+      return res.status(404).json({
+        success: false,
+        message: 'Session not found',
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete session',
+      error: error.message,
+    });
+  }
+};
+
+export const getAnalyticsInfo = async (req, res) => {
+  try {
+    const info = await analyticsService.getAnalyticsInfo();
+    
+    res.json({
+      success: true,
+      data: info,
+    });
+  } catch (error) {
+    console.error('[ANALYTICS] Get info error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get analytics info',
+      error: error.message,
+    });
+  }
+};
