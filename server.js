@@ -25,13 +25,13 @@ if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
   console.error('Please create .env file with SMTP_USER and SMTP_PASS');
 }
 
-if (!process.env.ADMIN_EMAIL) {
-  console.error('WARNING: ADMIN_EMAIL not found in .env file!');
-  console.error('Emails will not be sent until ADMIN_EMAIL is configured');
+if (!process.env.ADMIN_EMAIL && !process.env.ADMIN_EMAILS) {
+  console.error('WARNING: ADMIN_EMAIL/ADMIN_EMAILS not found in .env file!');
+  console.error('Emails will not be sent until at least one admin email is configured');
 }
 
-const smtpHostForLog = (process.env.SMTP_HOST || process.env.SMTP_SERVER || 'myitcloudsrvv1.myit-cloud.ge').trim();
-const smtpPortForLog = parseInt(process.env.SMTP_PORT, 10) || 587;
+const smtpHostForLog = (process.env.SMTP_HOST || process.env.SMTP_SERVER || 'smtp.gmail.com').trim();
+const smtpPortForLog = parseInt(process.env.SMTP_PORT, 10) || 465;
 const smtpSecureForLog = String(process.env.SMTP_SECURE || '').trim()
   ? ['1', 'true', 'yes', 'on'].includes(String(process.env.SMTP_SECURE).trim().toLowerCase())
   : smtpPortForLog === 465;
