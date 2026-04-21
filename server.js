@@ -7,6 +7,7 @@ import callbackRoutes from './src/callback/routes/callback.js';
 import calculatorRoutes from './src/calculator/routes/calculator.js';
 import appointmentRoutes from './src/appointment/routes/appointment.js';
 import adminAppointmentsRoutes from './src/admin/routes/adminAppointments.js';
+import analyticsRoutes from './src/analytics/routes/analyticsRoutes.js';
 import { createAppointment } from './src/appointment/controllers/appointmentController.js';
 import { createAdminAppointment } from './src/admin/controllers/adminAppointmentsController.js';
 import { requireAdminAuth } from './src/admin/middleware/adminAuth.js';
@@ -191,6 +192,7 @@ app.use('/api/callback', callbackRoutes);
 app.use('/api/calculator', calculatorRoutes);
 app.use('/api/appointment', appointmentRoutes);
 app.use('/api/admin', adminAppointmentsRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);

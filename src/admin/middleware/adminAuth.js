@@ -74,3 +74,13 @@ export const requireServiceAdmin = (req, res, next) => {
   });
 };
 
+/** developer only: полный доступ к аналитике */
+export const requireDeveloperRole = (req, res, next) => {
+  const role = req.admin?.role;
+  if (role === 'developer') return next();
+  return res.status(403).json({
+    success: false,
+    message: 'Forbidden: Developer access required'
+  });
+};
+

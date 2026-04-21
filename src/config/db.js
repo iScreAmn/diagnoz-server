@@ -1,5 +1,6 @@
 import { MongoClient } from 'mongodb';
 import { seedInitialAdminUser } from '../admin/services/adminBootstrap.js';
+import { ensureIndexes as ensureAnalyticsIndexes } from '../analytics/repositories/analyticsRepository.js';
 
 const mongoUri = String(process.env.MONGODB_URI || '').trim();
 
@@ -74,6 +75,9 @@ export const connectDB = async () => {
 
         await seedInitialAdminUser(db);
         console.log('[DB] users index/admin seed ensured');
+
+        await ensureAnalyticsIndexes();
+        console.log('[DB] analytics indexes ensured');
 
         return db;
       } catch (error) {
