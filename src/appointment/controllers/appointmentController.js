@@ -135,6 +135,28 @@ export const createAppointment = async (req, res) => {
       });
     }
 
+    const emailData = {
+      doctor,
+      name: patientName,
+      phone: normalizedPhone,
+      email,
+      appointmentDate: localSlot,
+      consent: Boolean(req.body?.consent),
+      submitted_at: new Date().toLocaleString('ru-RU', {
+        timeZone: 'Asia/Tbilisi',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }),
+      ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.connection?.remoteAddress,
+      userAgent: req.get('user-agent') || 'Unknown'
+    };
+
+    await sendAppointmentAdminEmail(emailData);
+
     const savedAppointment = await appointmentRepository.create({
       doctor,
       patientName,

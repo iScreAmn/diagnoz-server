@@ -14,6 +14,12 @@ const toVerificationError = (error) => ({
   command: error?.command || null
 });
 
+const formatAppointmentDateTime = (value) => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '-';
+  return normalized.replace('T', ' ');
+};
+
 const generateEmailHTML = (data) => `
   <!DOCTYPE html>
   <html lang="ru">
@@ -31,13 +37,13 @@ const generateEmailHTML = (data) => `
   </head>
   <body>
     <div class="container">
-      <h1>Запись к врачу — МЦ «Диагноз»</h1>
+      <h1>Новая запись пациента</h1>
       <div class="field">
         <span class="label">Врач:</span>
         <span>${data.doctor}</span>
       </div>
       <div class="field">
-        <span class="label">Имя пациента:</span>
+        <span class="label">Имя и фамилия:</span>
         <span>${data.name}</span>
       </div>
       <div class="field">
@@ -45,38 +51,37 @@ const generateEmailHTML = (data) => `
         <span>${data.phone}</span>
       </div>
       <div class="field">
-        <span class="label">Email:</span>
-        <span>${data.email || '-'}</span>
+        <span class="label">Дата и время приёма:</span>
+        <span>${formatAppointmentDateTime(data.appointmentDate)}</span>
       </div>
       <div class="field">
-        <span class="label">Дата приёма:</span>
-        <span>${data.appointmentDate || '-'}</span>
+        <span class="label">Почта:</span>
+        <span>${data.email || 'не указана'}</span>
       </div>
-      <div class="field">
-        <span class="label">Согласие на обработку данных:</span>
-        <span>${data.consent ? 'Да' : 'Нет'}</span>
+      <div class="meta" style="margin-top: 24px; font-size: 14px; color: #222;">
+        Для управления записью, перейдите в панель управления
+        <a href="https://diagnoz.ge/controls" target="_blank" rel="noopener noreferrer">https://diagnoz.ge/controls</a>
       </div>
-      <div class="meta">
-        Отправлено: ${data.submitted_at}<br />
-        ${data.ip ? `IP: ${data.ip}<br />` : ''}
-        ${data.userAgent ? `User Agent: ${data.userAgent}` : ''}
-      </div>
+      ${data.submitted_at ? `<div class="meta">Отправлено: ${data.submitted_at}</div>` : ''}
+      ${data.ip ? `<div class="meta">IP: ${data.ip}</div>` : ''}
+      ${data.userAgent ? `<div class="meta">User Agent: ${data.userAgent}</div>` : ''}
     </div>
   </body>
   </html>
 `;
 
 const generatePlainText = (data) => `
-Запись к врачу — МЦ «Диагноз»
+Новая запись пациента
 ${'='.repeat(40)}
 Врач: ${data.doctor}
-Имя пациента: ${data.name}
+Имя и фамилия: ${data.name}
 Телефон: ${data.phone}
-Email: ${data.email || '-'}
-Дата приёма: ${data.appointmentDate || '-'}
-Согласие: ${data.consent ? 'Да' : 'Нет'}
+Дата и время приёма: ${formatAppointmentDateTime(data.appointmentDate)}
+Почта: ${data.email || 'не указана'}
 
-Отправлено: ${data.submitted_at}
+Для управления записью, перейдите в панель управления https://diagnoz.ge/controls
+
+${data.submitted_at ? `Отправлено: ${data.submitted_at}` : ''}
 ${data.ip ? `IP: ${data.ip}\n` : ''}${data.userAgent ? `User Agent: ${data.userAgent}` : ''}
 `.trim();
 
@@ -91,7 +96,7 @@ export const sendAppointmentAdminEmail = async (data) => {
   const mailOptions = {
     from: `"${sender.name}" <${sender.email}>`,
     to: getAdminEmail(),
-    subject: `Запись к врачу — ${data.doctor} — Диагноз`,
+    subject: 'Новая запись пациента',
     html: generateEmailHTML(data),
     text: generatePlainText(data)
   };
