@@ -108,7 +108,7 @@ export const createAppointment = async (req, res) => {
       });
     }
 
-    const scheduleValidation = validateDoctorWorkingHours(doctor, appointmentDate);
+    const scheduleValidation = await validateDoctorWorkingHours(doctor, appointmentDate);
     if (!scheduleValidation.isValid) {
       return res.status(400).json({
         success: false,
@@ -242,7 +242,7 @@ export const submitAppointment = async (req, res) => {
 
     const doctorName = String(doctor).trim();
     const appointmentDateForSchedule = new Date(`${appointmentDate}T12:00:00+04:00`);
-    const scheduleDayValidation = validateDoctorWorkingDay(doctorName, appointmentDateForSchedule);
+    const scheduleDayValidation = await validateDoctorWorkingDay(doctorName, appointmentDateForSchedule);
     if (!scheduleDayValidation.isValid) {
       return res.status(400).json({
         success: false,

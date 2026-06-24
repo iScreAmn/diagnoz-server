@@ -1,120 +1,7 @@
+import { DAYS, toMinutes } from '../../schedule/scheduleConstants.js';
+import { getRangesForDoctor } from '../../schedule/services/scheduleService.js';
+
 const CLINIC_TIMEZONE = 'Asia/Tbilisi';
-
-const DAYS = {
-  Sun: 0,
-  Mon: 1,
-  Tue: 2,
-  Wed: 3,
-  Thu: 4,
-  Fri: 5,
-  Sat: 6
-};
-
-const DEFAULT_SCHEDULE = [
-  { days: [DAYS.Mon, DAYS.Tue, DAYS.Wed, DAYS.Thu, DAYS.Fri], start: '10:00', end: '16:00' },
-  { days: [DAYS.Sat], start: '10:00', end: '13:00' }
-];
-
-const DOCTOR_SCHEDULES = {
-  nina_avaliashvili: [
-    { days: [DAYS.Mon, DAYS.Tue, DAYS.Wed, DAYS.Thu, DAYS.Fri, DAYS.Sat], start: '10:00', end: '16:00' }
-  ],
-  karina_frangulyan: [
-    { days: [DAYS.Mon, DAYS.Tue, DAYS.Wed, DAYS.Thu, DAYS.Fri, DAYS.Sat], start: '10:00', end: '16:00' }
-  ],
-  nona_unikyan: [
-    { days: [DAYS.Tue, DAYS.Wed, DAYS.Thu], start: '10:00', end: '16:00' },
-    { days: [DAYS.Sat], start: '10:00', end: '13:00' }
-  ],
-  irina_hovanskaya: [
-    { days: [DAYS.Tue, DAYS.Wed, DAYS.Thu], start: '10:00', end: '16:00' },
-    { days: [DAYS.Sat], start: '10:00', end: '13:00' }
-  ],
-  maka_gordeziani: [
-    { days: [DAYS.Mon, DAYS.Tue, DAYS.Wed, DAYS.Thu, DAYS.Fri], start: '10:00', end: '12:30' },
-    { days: [DAYS.Sat], start: '10:00', end: '13:00' }
-  ],
-  sergo_jajani: [
-    { days: [DAYS.Wed], start: '14:00', end: '16:00' }
-  ],
-  marina_chilashvili: [
-    { days: [DAYS.Tue], start: '10:00', end: '16:00' }
-  ],
-  tinatin_nozadze: [
-    { days: [DAYS.Mon, DAYS.Tue, DAYS.Wed, DAYS.Thu], start: '10:00', end: '16:00' }
-  ],
-  raya_medulashvili: [
-    { days: [DAYS.Fri], start: '10:00', end: '16:00' },
-    { days: [DAYS.Sat], start: '10:00', end: '13:00' }
-  ],
-  inga_bokuchava: [
-    { days: [DAYS.Thu], start: '10:00', end: '16:00' },
-    { days: [DAYS.Sat], start: '10:00', end: '13:00' }
-  ],
-  nadezhda_prigorovskaya: [
-    { days: [DAYS.Mon], start: '14:30', end: '16:00' },
-    { days: [DAYS.Wed, DAYS.Thu, DAYS.Fri, DAYS.Sat], start: '10:00', end: '13:00' }
-  ],
-  natela_bzhania: [
-    { days: [DAYS.Mon, DAYS.Tue, DAYS.Thu, DAYS.Fri], start: '10:00', end: '16:00' }
-  ],
-  tamar_zenadze: [
-    { days: [DAYS.Wed], start: '10:00', end: '16:00' },
-    { days: [DAYS.Sat], start: '10:00', end: '13:00' }
-  ],
-  olga_uryukina: [
-    { days: [DAYS.Mon, DAYS.Wed, DAYS.Fri], start: '10:00', end: '16:00' },
-    { days: [DAYS.Sat], start: '10:00', end: '13:00' }
-  ]
-};
-
-const DOCTOR_ALIASES = {
-  nina_avaliashvili: ['avaliash', 'avalish', 'авали', 'ავალია'],
-  karina_frangulyan: ['franguly', 'франгул', 'ფრანგული'],
-  nona_unikyan: ['uniky', 'уник', 'უნიკ'],
-  irina_hovanskaya: ['hovansk', 'khovansk', 'хованск', 'ხოვანსკ'],
-  maka_gordeziani: ['gordez', 'гордез', 'გორდეზ'],
-  sergo_jajani: ['jajani', 'джаиан', 'ჯაიან'],
-  marina_chilashvili: ['chilash', 'чилаш', 'ჭილაშ'],
-  tinatin_nozadze: ['nozad', 'нозад', 'ნოზაძ'],
-  raya_medulashvili: ['medulash', 'медулаш', 'მედულაშ'],
-  inga_bokuchava: ['bokuch', 'бокуч', 'ბოკუჩ'],
-  nadezhda_prigorovskaya: ['prigorov', 'пригоров', 'პრიგორ'],
-  natela_bzhania: ['bzhan', 'бжан', 'ბჟან'],
-  tamar_zenadze: ['zenadz', 'зенадз', 'ზენაძ'],
-  olga_uryukina: ['uryukin', 'urjukin', 'урюкин', 'ურიუკინ']
-};
-
-const normalizeDoctorName = (value) =>
-  String(value || '')
-    .toLowerCase()
-    .replace(/[.\-_,]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-const toMinutes = (time) => {
-  const [hour, minute] = String(time || '').split(':').map(Number);
-  if (Number.isNaN(hour) || Number.isNaN(minute)) return NaN;
-  return (hour * 60) + minute;
-};
-
-const resolveDoctorScheduleKey = (doctorName) => {
-  const normalized = normalizeDoctorName(doctorName);
-  if (!normalized) return '';
-
-  for (const [doctorKey, aliases] of Object.entries(DOCTOR_ALIASES)) {
-    if (aliases.some((alias) => normalized.includes(alias))) {
-      return doctorKey;
-    }
-  }
-
-  return '';
-};
-
-const getScheduleForDoctor = (doctorName) => {
-  const scheduleKey = resolveDoctorScheduleKey(doctorName);
-  return DOCTOR_SCHEDULES[scheduleKey] || DEFAULT_SCHEDULE;
-};
 
 const getDatePartsInClinicTz = (date) => {
   const parts = new Intl.DateTimeFormat('en-GB', {
@@ -132,7 +19,7 @@ const getDatePartsInClinicTz = (date) => {
   return { weekday, hour, minute };
 };
 
-export const validateDoctorWorkingDay = (doctorName, date) => {
+export const validateDoctorWorkingDay = async (doctorName, date) => {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
     return {
       isValid: false,
@@ -156,7 +43,8 @@ export const validateDoctorWorkingDay = (doctorName, date) => {
     };
   }
 
-  const rangesForDay = getScheduleForDoctor(doctorName).filter((range) => range.days.includes(day));
+  const schedule = await getRangesForDoctor(doctorName);
+  const rangesForDay = schedule.filter((range) => range.days.includes(day));
   if (!rangesForDay.length) {
     return {
       isValid: false,
@@ -167,7 +55,7 @@ export const validateDoctorWorkingDay = (doctorName, date) => {
   return { isValid: true };
 };
 
-export const validateDoctorWorkingHours = (doctorName, date) => {
+export const validateDoctorWorkingHours = async (doctorName, date) => {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
     return {
       isValid: false,
@@ -193,10 +81,11 @@ export const validateDoctorWorkingHours = (doctorName, date) => {
     };
   }
 
-  const dayValidation = validateDoctorWorkingDay(doctorName, date);
+  const dayValidation = await validateDoctorWorkingDay(doctorName, date);
   if (!dayValidation.isValid) return dayValidation;
 
-  const rangesForDay = getScheduleForDoctor(doctorName).filter((range) => range.days.includes(day));
+  const schedule = await getRangesForDoctor(doctorName);
+  const rangesForDay = schedule.filter((range) => range.days.includes(day));
 
   const isInsideRange = rangesForDay.some((range) => {
     const start = toMinutes(range.start);
@@ -214,4 +103,3 @@ export const validateDoctorWorkingHours = (doctorName, date) => {
 
   return { isValid: true };
 };
-

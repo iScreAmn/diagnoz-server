@@ -1,3 +1,4 @@
+import './src/config/loadEnv.js';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -8,6 +9,8 @@ import calculatorRoutes from './src/calculator/routes/calculator.js';
 import appointmentRoutes from './src/appointment/routes/appointment.js';
 import adminAppointmentsRoutes from './src/admin/routes/adminAppointments.js';
 import analyticsRoutes from './src/analytics/routes/analyticsRoutes.js';
+import scheduleRoutes from './src/schedule/routes/scheduleRoutes.js';
+import adminScheduleRoutes from './src/schedule/routes/adminScheduleRoutes.js';
 import { createAppointment } from './src/appointment/controllers/appointmentController.js';
 import { createAdminAppointment } from './src/admin/controllers/adminAppointmentsController.js';
 import { requireAdminAuth } from './src/admin/middleware/adminAuth.js';
@@ -191,6 +194,8 @@ app.post('/admin/appointments', requireAdminAuth, createAdminAppointment);
 app.use('/api/callback', callbackRoutes);
 app.use('/api/calculator', calculatorRoutes);
 app.use('/api/appointment', appointmentRoutes);
+app.use('/api/schedule', scheduleRoutes);
+app.use('/api/admin/schedules', adminScheduleRoutes);
 app.use('/api/admin', adminAppointmentsRoutes);
 app.use('/api/analytics', analyticsRoutes);
 

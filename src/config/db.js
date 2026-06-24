@@ -1,6 +1,7 @@
 import { MongoClient } from 'mongodb';
 import { seedInitialAdminUser } from '../admin/services/adminBootstrap.js';
 import { ensureIndexes as ensureAnalyticsIndexes } from '../analytics/repositories/analyticsRepository.js';
+import { ensureScheduleIndexes, seedSchedules } from '../schedule/repositories/scheduleRepository.js';
 
 const mongoUri = String(process.env.MONGODB_URI || '').trim();
 
@@ -78,6 +79,10 @@ export const connectDB = async () => {
 
         await ensureAnalyticsIndexes();
         console.log('[DB] analytics indexes ensured');
+
+        await ensureScheduleIndexes();
+        await seedSchedules();
+        console.log('[DB] doctor schedules index/seed ensured');
 
         return db;
       } catch (error) {

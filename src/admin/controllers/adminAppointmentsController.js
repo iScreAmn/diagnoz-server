@@ -32,7 +32,7 @@ export const createAdminAppointment = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid appointmentDate. Expected a valid date-time string.' });
     }
 
-    const scheduleValidation = validateDoctorWorkingHours(doctor, appointmentDate);
+    const scheduleValidation = await validateDoctorWorkingHours(doctor, appointmentDate);
     if (!scheduleValidation.isValid) {
       return res.status(400).json({ success: false, message: scheduleValidation.message });
     }
